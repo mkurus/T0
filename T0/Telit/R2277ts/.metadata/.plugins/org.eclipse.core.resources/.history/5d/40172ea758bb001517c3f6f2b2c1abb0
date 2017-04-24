@@ -1,0 +1,1142 @@
+#include "board.h"
+#include "timer.h"
+#include "gsm.h"
+#include "settings.h"
+#include "timer.h"
+#include "at_commands.h"
+#include "bootloader.h"
+#include "gps.h"
+#include "status.h"
+#include "messages.h"
+#include "chip.h"
+#include "spi.h"
+#include "utils.h"
+#include "messages.h"
+#include "xmodem1k.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define GSM_UART         	 	 LPC_USART1
+#define GSM_BAUD_RATE   		 115200
+#define GSM_IRQ_SELECTION 	 	 UART1_IRQn
+#define GSM_UART_ISR_HANDLER 	 UART1_IRQHandler
+
+
+/* Transmit and receive ring buffer sizes */
+#define GSM_UART_RRB_SIZE 512	/* Receive */
+#define GSM_UART_SRB_SIZE 256 	/* Send */
+
+#define MAX_TCP_RECEIVE_SIZE     256
+
+#define HEARTBEAT_INTERVAL                   (1  * SECOND)
+#define OFFLINE_DATA_SEND_INTERVAL           (10 * SECOND)
+#define MODULE_STATUS_CHECK_INTERVAL         (3  * SECOND)
+#define AT_RESPONSE_TIMEOUT                  (1  * SECOND)
+#define GPRS_ATTACH_TIMEOUT                  (1  * MINUTE)
+#define SERVER_CONNECTION_TIMEOUT            (30 * SECOND)
+#define KEEP_ALIVE_TIMEOUT                   (5  * MINUTE)
+#define GSM_REGISTRATION_TIMEOUT             (2  * MINUTE)
+
+#define MAX_SMS_LENGTH                       160
+
+#define MAX_NUMBER_OF_NONACKED_BYTES         500
+#define AT_RESPONSE_BUFFER_SIZE              256
+
+#define MAX_NUMBER_OF_FAIL_COUNT             5
+#define MAX_NUMBER_OF_FAILS_FOR_MCU_RESET    15
+
+#define SERVER_CONNECTION_RETRIES             5
+
+void Gsm_AssertModuleResetLine(void);
+void Gsm_DeassertModuleResetLine(void);
+
+void DefinePDPContext(char *apn);
+void ActivatePDPContext(char *username, char *password);
+
+void Send_ATCommand(const char *,char *);
+void CloseSocketConnection();
+void GSM_HardReset();
+void Initialize_Timers();
+AT_RESPONSE_CODE GetResponseCode(char *);
+uint16_t ProcessATResponse(char *, uint16_t length, uint16_t timeout, void (*callback)());
+AT_RESPONSE_CODE ProcessATResponse2(char *);
+AT_RESPONSE_CODE ProcessCIEVMessage(char *);
+bool InsertImeiToOfflineData(char *buffer);
+bool Get_GsmRegistrationStatus(char * buffer);    /* get registration status  */
+bool Get_BatteryVoltage(char *buffer);
+bool Get_GsmSignalPower(char *buffer);           /* get CSQ value */
+bool Get_SMS(char *buffer);
+bool Get_SocketStats(char *buffer);
+bool Get_SocketStatus(char *buffer);
+int Get_Value(char *buffer, int param_no);
+uint8_t GetSMSMessageIndex(char *);
+uint8_t GetSMSContentLength(char *buffer);
+void Start_SendingData(uint16_t i_msglen);
+bool Restart_Modem();
+bool ConnectToServer(uint8_t u8_retryCount);
+TIMER_INFO_T SEND_OFFLINE_DATA_TIMER;
+TIMER_INFO_T SEND_PERIODIC_DATA_TIMER;
+TIMER_INFO_T KEEP_ALIVE_TIMER;
+TIMER_INFO_T SMS_CHECK_TIMER;
+TIMER_INFO_T SEND_FAIL_TIMER;
+TIMER_INFO_T HEARTBEAT_TIMER;
+
+TIMER_TICK_T Get_DataSendPeriod();
+COMMAND_RESULT_T Get_BufferedData();
+
+bool CheckModemStatus();
+bool ModuleInitialize();
+bool ConnectingToServer();
+bool AttachToGprs();
+int ConnectedToServer();
+void Init_UpdateInfo();
+void Update_GsmRegistrationStatus(int u8_indValue);
+int Read_ModemRxBuffer(void *data, int numBytes);
+
+
+void SendConnectionCommand(char *p_tcpPort, char *p_serverIp);
+void Set_TcpConnectionParameters(char *ipAddress, char *tcpPort);
+
+/* Transmit and receive buffers */
+static uint8_t gsm_rxbuff[GSM_UART_RRB_SIZE];
+static uint8_t gsm_txbuff[GSM_UART_SRB_SIZE];
+/* Transmit and receive ring buffers */
+STATIC RINGBUFF_T gsm_txring, gsm_rxring;
+
+
+TCP_CONNECTION_INFO_T tcpConnectionInfo_t;
+GSM_INFO_T gsm_info;
+
+static char messageBuffer[MAX_T_MESSAGE_SIZE];
+static int32_t i_tempNonAckedBytes = 0;
+static uint8_t u8_gsmModemFailCount = 0;
+static uint8_t u8_counterMcuReset = 0;
+static GSM_MODULE_STATE t_gsmState;
+void Trio_Init_GSM_UART()
+{
+	Chip_UART_Init(GSM_UART);
+	Chip_UART_ConfigData(GSM_UART, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1);
+	Chip_UART_SetBaud(GSM_UART, GSM_BAUD_RATE);
+	Chip_UART_Enable(GSM_UART);
+	Chip_UART_TXEnable(GSM_UART);
+
+	/* Before using the ring buffers, initialize them using the ring
+	   buffer init function */
+/*	memset(gsm_rxbuff, 0, GSM_UART_RRB_SIZE);
+	memset(gsm_txbuff, 0, GSM_UART_SRB_SIZE);*/
+	RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+	RingBuffer_Init(&gsm_txring, gsm_txbuff, 1, GSM_UART_SRB_SIZE);
+
+	Chip_UART_IntEnable(GSM_UART, UART_INTEN_RXRDY);
+	NVIC_EnableIRQ(GSM_IRQ_SELECTION);
+
+}
+/*************************************************************/
+__attribute__((short_call))
+void __attribute__ ((noinline)) GSM_UART_ISR_HANDLER(void)
+{
+	Chip_UART_IRQRBHandler(GSM_UART, &gsm_rxring, &gsm_txring);
+}
+/**************************************************************/
+void Init_GSM_UART_PinMux(void)
+{
+	/* Enable the clock to the Switch Matrix */
+	//Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+
+//	Chip_Clock_SetUARTClockDiv(1);	/* divided by 1 */
+
+/*	Chip_SWM_DisableFixedPin(SWM_FIXED_ADC8);
+	Chip_SWM_DisableFixedPin(SWM_FIXED_I2C0_SDA);*/
+
+	Chip_SWM_MovablePinAssign(SWM_U1_TXD_O, 18);
+	Chip_SWM_MovablePinAssign(SWM_U1_RXD_I, 11);
+
+	/* Disable the clock to the Switch Matrix to save power */
+	//Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+/**************************************************************/
+void ExecuteMainLoop()
+{
+
+	int i_msgLen;
+	int result = 0;
+	GSM_HardReset();
+	Set_Timer(&HEARTBEAT_TIMER, HEARTBEAT_INTERVAL);
+	Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+//	PRINT_K("\r\n");
+	PRINT_K(VERSION);
+	PRINT_K("\r\n");
+
+while(1){
+
+		if(mn_timer_expired(&SEND_FAIL_TIMER))
+			break;
+
+		if(ifKmRecordLimitExceeded()){
+			GPS_POSITION_DATA_T position_info;
+			Get_PositionInfo(&position_info);
+			UpdateKmCounter(position_info.distance/1000);
+		}
+
+		onIdle();
+		Chip_WWDT_Feed(LPC_WWDT);
+	/*	uint32_t address = 0x3ED;
+		    		uint16_t length = 256;
+		    			char buffer[256];
+		    			for(address = 0x3ED; address <0x6298; address+=256)
+		    			{
+		    				SST25_Read(address,length,buffer);
+		    				PRINT_K(buffer);
+		    				Delay(10);
+		    			}
+
+		    	while(1);*/
+		switch(t_gsmState)
+		{
+
+			case MODULE_RESET_STATE:
+			if(Restart_Modem() == TRUE){
+				u8_gsmModemFailCount = 0;
+				u8_counterMcuReset = 0;
+				t_gsmState = MODULE_INITIALIZING_STATE;
+			}
+			else{
+				u8_counterMcuReset++;
+				if(u8_counterMcuReset == MAX_NUMBER_OF_FAILS_FOR_MCU_RESET)
+					NVIC_SystemReset();
+				else{
+					if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT){
+						u8_gsmModemFailCount = 0;
+						GSM_HardReset();
+					}
+				}
+			}
+			break;
+			/******/
+			case MODULE_INITIALIZING_STATE:
+			if(ModuleInitialize() == TRUE){
+				u8_gsmModemFailCount = 0;
+				t_gsmState = MODULE_ATTACHING_TO_GPRS_STATE;
+			}
+			else{
+				if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT * 5){
+					u8_gsmModemFailCount = 0;
+					t_gsmState = MODULE_RESET_STATE;
+				}
+			}
+			break;
+			/*****/
+			case MODULE_ATTACHING_TO_GPRS_STATE:
+			if(AttachToGprs() == TRUE){
+				PRINT_K("Attached to GPRS\r\n");
+				u8_gsmModemFailCount = 0;
+				FLASH_SETTINGS_T user_settings;
+				Get_UserSettings(&user_settings);
+				Set_ServerConnectionParameters(user_settings.server_ip,
+										       user_settings.server_port
+											   );
+				t_gsmState = MODULE_CONNECTING_TO_SERVER_STATE;
+			}
+			else{
+				if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT){
+					u8_gsmModemFailCount = 0;
+					t_gsmState = MODULE_RESET_STATE;
+				}
+			}
+			break;
+
+			case MODULE_CONNECTING_TO_SERVER_STATE:
+			if(ConnectingToServer() == TRUE){
+				PRINT_K("Connected.Sending ST message...\r\n");
+				i_msgLen = Trio_PrepareSTMessage(messageBuffer);
+				if(Send_MessageToServer(messageBuffer, i_msgLen, onIdle))
+				{
+					PRINT_K("Done");
+					gsm_info.b_socketActive = TRUE;
+					u8_gsmModemFailCount = 0;
+				//	Set_Timer(&OFFLINE_DATA_RAD_ADDRESS_UPDATE_TIMER, ONE_HOUR_TIMEOUT);
+					Initialize_Timers();
+					t_gsmState = MODULE_CONNECTED_TO_SERVER_STATE;
+				}
+				else{
+					if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT){
+						u8_gsmModemFailCount = 0;
+						t_gsmState = MODULE_RESET_STATE;
+					}
+				}
+			}
+			else {
+				if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT){
+					u8_gsmModemFailCount = 0;
+					t_gsmState = MODULE_RESET_STATE;
+				}
+			}
+			break;
+
+			case MODULE_CONNECTED_TO_SERVER_STATE:
+			result = ConnectedToServer();
+			if(result == -1){
+				/*itoa(u8_gsmModemFailCount, buffer, 10);
+				PRINT_K(buffer);*/
+				if(u8_gsmModemFailCount++ == MAX_NUMBER_OF_FAIL_COUNT){
+					u8_gsmModemFailCount = 0;
+				/*	PRINT_K("\r\nFail count maksimum\r\n");*/
+					t_gsmState = MODULE_RESET_STATE;
+				}
+				else{
+					Initialize_Timers();
+					gsm_info.b_socketActive = FALSE;
+					gsm_info.gsm_stats.u16_totalBytesNonAcked1 = gsm_info.gsm_stats.u16_totalBytesNonAcked2;
+					i_tempNonAckedBytes = 0;
+				}
+			}
+			else if(result == 1)
+				u8_gsmModemFailCount = 0;
+			else if(result == 4)
+				t_gsmState = MODULE_CONNECTED_TO_UPDATE_SERVER_STATE;
+			break;
+
+			case MODULE_CONNECTED_TO_UPDATE_SERVER_STATE:
+			/* GPS UART and firmware update routines use the same buffer. First disable
+					    *  the GPS interface to prevent intervention of GPS data*/
+			Disable_GPS();
+			Init_UpdateInfo();
+		    XModem1K_Client(gsm_info.imei_no );
+		    NVIC_SystemReset();
+			break;
+		}
+	}
+}
+/****************************************************************************/
+int ConnectedToServer()
+{
+	COMMAND_RESULT_T result;
+	char commandResponse[MAX_T_MESSAGE_SIZE];
+
+	bool b_needToReset = FALSE;
+	int32_t i_msgLen = 0;
+	int success = 0;
+	bool temp = TRUE;
+
+			if(Get_AlarmStatus()){
+				PRINT_K("Send Alarm\r\n");
+				i_msgLen = Trio_PrepareTMessage(messageBuffer, TRUE);
+				if(Send_MessageToServer(messageBuffer, i_msgLen, onIdle) == FALSE)
+					return -1;
+				else{
+					//PRINT_K("\r\nAlarm info sent to server\r\n");
+					Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+					Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+					success = 1;
+				}
+			}
+			if(mn_timer_expired(&SEND_PERIODIC_DATA_TIMER)) {
+					PRINT_K("Send periodic data\r\n");
+					i_msgLen = Trio_PrepareTMessage(messageBuffer, TRUE);
+					if(Send_MessageToServer(messageBuffer, i_msgLen, onIdle) == FALSE)
+						return -1;
+					else{
+						Set_Timer(&SEND_PERIODIC_DATA_TIMER, Get_DataSendPeriod());
+						Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+						Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+						success = 1;
+					}
+			}
+			if(mn_timer_expired(&KEEP_ALIVE_TIMER)){
+				PRINT_K("Send Keep-Alive\r\n");
+				i_msgLen = Trio_PreparePingMessage(messageBuffer, gsm_info.imei_no);
+				if(Send_MessageToServer(messageBuffer, i_msgLen, onIdle) == FALSE)
+					return -1;
+				else{
+					Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+					Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+					success = 1;
+				}
+			}
+			if(mn_timer_expired(&SEND_OFFLINE_DATA_TIMER)){
+					PRINT_K("Send Log Data\r\n");
+					i_msgLen = Get_OffLineDataFromFlash(messageBuffer);
+					if(i_msgLen > 0){
+						if(InsertImeiToOfflineData(messageBuffer)){
+							if(Send_MessageToServer(messageBuffer, strlen(messageBuffer), onIdle) == FALSE)
+								return FALSE;
+							else{
+								Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+								Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+								success = 1;
+							}
+						}
+					}
+					Set_Timer(&SEND_OFFLINE_DATA_TIMER, OFFLINE_DATA_SEND_INTERVAL);
+			}
+
+			if(mn_timer_expired(&SMS_CHECK_TIMER)){
+				if(CheckModemStatus() == FALSE)
+					return -1;
+
+				if(gsm_info.gsm_stats.u16_totalBytesBuffered > 0){
+					Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle);
+					memset(commandResponse, 0, MAX_T_MESSAGE_SIZE);
+					result = ProcessReceivedData(messageBuffer, commandResponse);
+					temp =  TRUE;
+						switch(result){
+						/*	case REPLY_SEND_LOCATION:
+							i_msgLen = Trio_PrepareTMessage(messageBuffer, TRUE);
+							temp = Send_MessageToServer(messageBuffer, i_msgLen, onIdle);
+							break;*/
+
+							case REPLY_ECHO_PACKET:
+						//	i_msgLen = GetEchoMessage(messageBuffer, &b_needToReset);
+							temp = Send_MessageToServer(messageBuffer, i_msgLen, onIdle);
+							break;
+
+							case REPLY_CONNECT_TO_UPDATE_SERVER:
+							/* terminate connection to tracking server */
+							Gsm_CloseSocket();
+							if(ConnectToServer(5) == TRUE)
+								return 4;
+							break;
+						}
+					if(temp == FALSE)
+						return -1;
+					else{
+						Set_Timer(&SEND_FAIL_TIMER, SEND_FAIL_TIMEOUT);
+						Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+						if(b_needToReset)
+							NVIC_SystemReset();
+						success = 1;
+					}
+				}
+				if((i_tempNonAckedBytes > MAX_NUMBER_OF_NONACKED_BYTES) ||
+					(gsm_info.b_gsmRegistered == FALSE)                 ||
+					(!gsm_info.b_socketActive))
+						return -1;
+
+				Set_Timer(&SMS_CHECK_TIMER, MODULE_STATUS_CHECK_INTERVAL);
+			}
+			return success;
+}
+/*****************************************************/
+#define      T_MESSAGE_HEADER       "[T"
+#define      T_MESSAGE_FOOTER       "]"
+
+bool InsertImeiToOfflineData(char *buffer)
+{
+	char tempBuffer[MAX_T_MESSAGE_SIZE];
+	char *p_msgHeader, *p_msgFooter;
+
+	memset(tempBuffer, 0, MAX_T_MESSAGE_SIZE);
+
+	/* check if we have a valid T message header */
+	p_msgHeader = strstr(buffer, T_MESSAGE_HEADER);
+	if(p_msgHeader == NULL)
+		return FALSE;
+
+	/* check if we have a valid T message footer */
+	p_msgFooter = strstr(buffer, T_MESSAGE_FOOTER);
+	if(p_msgFooter == NULL)
+		return FALSE;
+
+	/* check if we have a valid IMEI */
+	if(strlen(gsm_info.imei_no) != IMEI_LEN)
+		return FALSE;
+
+	/* start copying message to buffer*/
+	strcat(tempBuffer, T_MESSAGE_HEADER);
+	*p_msgFooter ='\0';
+
+	strcat(tempBuffer, gsm_info.imei_no);
+	strcat(tempBuffer, p_msgHeader + sizeof(T_MESSAGE_HEADER) - 1);
+
+	Trio_AddTMessageExtensionSeperator(tempBuffer);
+	Trio_PrepareTMessageExtension(tempBuffer, OFFLINE_DATA);
+	Trio_EndTMessage(tempBuffer);
+
+	strcpy(buffer, tempBuffer);
+
+	return TRUE;
+}
+
+/*********************************************************************/
+void ReloadPeriodicDataSendTimer()
+{
+	Set_Timer(&SEND_PERIODIC_DATA_TIMER, Get_DataSendPeriod());
+}
+/**********************************************************************/
+bool ConnectingToServer()
+{
+	char buffer[128];
+	uint8_t result = true;
+
+		Send_ATCommand(Command_SCFG, "");
+		ProcessATResponse(buffer, sizeof(buffer), AT_RESPONSE_TIMEOUT, onIdle);
+		if(strstr(buffer, p_strOK) == NULL)
+			return false;
+
+		/*********/
+
+		Send_ATCommand(Command_SCFGEXT, "");
+		ProcessATResponse(buffer, 32, AT_RESPONSE_TIMEOUT, onIdle);
+		if(strstr(buffer, p_strOK) == NULL)
+			return false;
+
+		result = ConnectToServer(SERVER_CONNECTION_RETRIES);
+		return result;
+}
+/*********************************************************************/
+bool ConnectToServer(uint8_t u8_retryCount)
+{
+
+	char respBuffer[64];
+
+//	Get_CurrentStackPointer();
+
+/*	PRINT_K("\r\n**********\r\n");
+	PRINT_K( tcpConnectionInfo.tcpServerInfo_t.server_ip);
+	PRINT_K( tcpConnectionInfo.tcpServerInfo_t.server_port);
+	PRINT_K("\r\n**********\r\n");
+*/
+
+	while(u8_retryCount > 0){
+		SendConnectionCommand(tcpConnectionInfo_t.tcpServerInfo_t.server_ip,
+							  tcpConnectionInfo_t.tcpServerInfo_t.server_port);
+		ProcessATResponse(respBuffer, sizeof(respBuffer), 200, onIdle);
+		if(strstr(respBuffer, p_strOK) != NULL)
+			return TRUE;
+		else
+			u8_retryCount--;
+	}
+	return FALSE;
+}
+/*****************************************************************************/
+bool AttachToGprs()
+{
+	TIMER_INFO_T AT_RESPONSE_TIMER;
+	FLASH_SETTINGS_T user_settings;
+	char buffer[32];
+
+            Get_UserSettings(&user_settings);
+			/***********/
+			DefinePDPContext(user_settings.flash_apn);
+			ProcessATResponse(buffer, sizeof(buffer), AT_RESPONSE_TIMEOUT, onIdle);
+			if(strstr(buffer, p_strOK) == NULL)
+				return false;
+		//	PRINT_K("\r\nPDP context defined\r\n");
+
+			/***********/
+			PRINT_K("Activate PDP...");
+
+			Set_Timer(&AT_RESPONSE_TIMER, GPRS_ATTACH_TIMEOUT);
+			while(!mn_timer_expired(&AT_RESPONSE_TIMER)){
+				ActivatePDPContext(user_settings.flash_apnusername, user_settings.flash_apnpassword);
+				ProcessATResponse(buffer, sizeof(buffer), GPRS_ATTACH_TIMEOUT / 6, onIdle);
+				if((strstr(buffer,"#SGACT") != NULL) || (strstr(buffer, p_strOK) != NULL)){
+					PRINT_K("Done\r\n");
+					return TRUE;
+				}
+				CheckModemStatus();
+				if(gsm_info.b_gsmRegistered == FALSE) {
+				//	PRINT_K("Breaking Loop\r\n");
+					return FALSE;
+				}
+			}
+
+
+		return FALSE;
+}
+/*****************************************************************************/
+/* Initialization state machine for GSM module. Returns true on success.                                            */
+/*****************************************************************************/
+bool ModuleInitialize()
+{
+	TIMER_INFO_T AT_RESPONSE_TIMER;
+	char buffer[256];
+	bool success = false;
+
+			/****/
+			Set_Timer(&AT_RESPONSE_TIMER, 1000);
+			while(!mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Send_ATCommand(Command_AT, "Init module\r\n");
+				ProcessATResponse(buffer, sizeof(buffer), 100, onIdle);
+				if(strstr(buffer, p_strOK) != NULL)
+					break;
+				else
+					return FALSE;
+			}
+
+			/***/
+			Send_ATCommand(Command_ATE0, "Echo disable\r\n");
+			ProcessATResponse(buffer, 192, 200, onIdle);
+			if(strstr(buffer, p_strOK) == NULL)
+				return false;
+
+			/*****/
+			Send_ATCommand(Command_CGSN, "Reading IMEI...\r\n");
+			ProcessATResponse(buffer, 64, AT_RESPONSE_TIMEOUT, onIdle);
+			if(strstr(buffer, p_strOK) == NULL)
+				return false;
+			memcpy(gsm_info.imei_no, &buffer[2] ,IMEI_LEN);
+			gsm_info.imei_no[IMEI_LEN] = '\0';
+
+			/*****/
+		//	PRINT_K("Reading PIN\r\n");
+			Set_Timer(&AT_RESPONSE_TIMER, 1000);
+			while(!mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Send_ATCommand(Command_CPIN,"Reading PIN\r\n");
+				ProcessATResponse(buffer, 64, AT_RESPONSE_TIMEOUT, onIdle);
+				if(strstr(buffer, "READY") != NULL){
+					success = TRUE;
+					break;
+				}
+				else
+					success = FALSE;
+			}
+			if(!success)
+				return FALSE;
+
+			/*****/
+			Send_ATCommand(Command_CIMI, "Reading IMSI\r\n");
+			ProcessATResponse(buffer, 64, AT_RESPONSE_TIMEOUT, onIdle);
+			if(strstr(buffer, p_strOK) == NULL)
+				return false;
+			memcpy(gsm_info.imsi_no, &buffer[2] ,IMSI_LEN);
+			gsm_info.imsi_no[IMEI_LEN] = '\0';
+
+			/******/
+
+		//	PRINT_K("Enabling eer \r\n");
+			Set_Timer(&AT_RESPONSE_TIMER, 1000);
+			while(!mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Send_ATCommand(Command_CMER, "");
+				ProcessATResponse(buffer, 64, AT_RESPONSE_TIMEOUT, onIdle);
+				if(strstr(buffer, p_strOK) != NULL){
+					success = TRUE;
+					break;
+				}
+				else
+					success = FALSE;
+			}
+			if(!success)
+				return FALSE;
+
+			/******/
+			Set_Timer(&AT_RESPONSE_TIMER, GSM_REGISTRATION_TIMEOUT);
+			while(!mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Send_ATCommand(Command_CREG, "\r\nWaiting GSM registration...");
+				ProcessATResponse(buffer, 64, AT_RESPONSE_TIMEOUT, onIdle);
+				Get_GsmRegistrationStatus(buffer);
+				if(gsm_info.b_gsmRegistered){
+					PRINT_K("Registered\r\n");
+					return true;
+				}
+			}
+		return false;
+}
+/*************************************************************/
+#define   AT_RESPONSE_CHAR_TIMEOUT            10
+
+uint16_t ProcessATResponse(char *buffer, uint16_t length, uint16_t timeout, void (*callbackFunc)())
+{
+	TIMER_INFO_T at_response_timer;
+	TIMER_INFO_T charTimer;
+	int readBytes = 0;
+	char data;
+
+//	memset(buffer,0,length);
+
+    Set_Timer(&at_response_timer, timeout);
+
+    while(!mn_timer_expired(&at_response_timer)){
+    	if(Chip_UART_ReadRB(GSM_UART, &gsm_rxring, &data, 1) > 0){
+    		Set_Timer(&charTimer, AT_RESPONSE_CHAR_TIMEOUT);
+    		buffer[readBytes++] = data;
+    		if(readBytes == length){
+    			return readBytes;
+    		}
+    	 }
+    	else{
+    		if((mn_timer_expired(&charTimer)) && ( readBytes > 0)){
+    		//	PRINT_K(buffer);
+    			return readBytes;
+    		}
+    	}
+    	if(callbackFunc != NULL)
+    		callbackFunc();
+    }
+    return 0;
+}
+
+/*****************************************************************************/
+void Update_GsmRegistrationStatus(int i_indValue)
+{
+	gsm_info.b_gsmRegistered = FALSE;
+	gsm_info.b_roaming = FALSE;
+
+	if(i_indValue == 1)
+		gsm_info.b_gsmRegistered = TRUE;
+
+	else if(i_indValue == 5){
+		gsm_info.b_gsmRegistered = TRUE;
+		gsm_info.b_roaming = TRUE;
+	}
+}
+/********************************************************************************/
+void Set_GsmResetPinFunction(uint8_t pin_number)
+{
+	/* Set PIO0.10 as output.This pin controls the reset pin */
+	/* of Telit GSM module*/
+
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+	/* Enable GPIO function for I2C pins */
+	Chip_IOCON_PinSetI2CMode(LPC_IOCON, IOCON_PIO10, PIN_I2CMODE_GPIO);
+	/* Disable the clock to the Switch Matrix to save power */
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, pin_number);
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, pin_number, true);
+}
+
+/******************************************************************/
+void Get_GsmInfo(GSM_INFO_T *const gsm_info_buffer)
+{
+	*gsm_info_buffer = gsm_info;
+	/*gsm_info_buffer->csq = gsm_params_t.csq;
+	strcpy(gsm_info_buffer->imei_no, gsm_params_t.imei_no);
+	strcpy(gsm_info_buffer->imsi_no, gsm_params_t.imsi_no);*/
+}
+/*******************************************************************/
+void DeassertGsmResetPin(void)
+{
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GSM_RESET_PIN, false);
+}
+
+/*********************************************************************/
+void Send_ATCommand(const char *command,  char *traceMessage)
+{
+	PRINT_K(traceMessage);
+//	PRINT_K(command);
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, command, strlen(command));
+	RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+}
+/**********************************************************************/
+bool GetServerConnectionStatus()
+{
+	return gsm_info.b_socketActive;
+}
+/***********************************************************************/
+void CloseSocketConnection()
+{
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, Command_ATSH, sizeof(Command_ATSH) -1);
+	//Set_Timer(&AT_RESPONSE_TIMER, 1000);
+}
+/***********************************************************************/
+void DefinePDPContext(char *apn)
+{
+	char cmdBuffer[256];
+
+	memset(cmdBuffer,0, sizeof(cmdBuffer));
+
+	strcat(cmdBuffer,Command_CGDCONT);
+	strcat(cmdBuffer, apn);
+	strcat(cmdBuffer,"\"\r");
+
+	Send_ATCommand(cmdBuffer, "");
+}
+/***********************************************************************/
+void ActivatePDPContext(char *username, char *password)
+{
+	char cmdBuffer[256];
+
+	memset(cmdBuffer,0, sizeof(cmdBuffer));
+
+	strcat(cmdBuffer,Command_SGACT);
+	strcat(cmdBuffer, username);
+	strcat(cmdBuffer,"\",\"");
+	strcat(cmdBuffer, password);
+	strcat(cmdBuffer,"\"\r");
+
+	Send_ATCommand(cmdBuffer, "");
+}
+/*************************************************************************/
+void SendConnectionCommand(char *p_serverIp, char *p_tcpPort)
+{
+	char cmdBuffer[256];
+
+	memset(cmdBuffer,0, sizeof(cmdBuffer));
+
+	strcat(cmdBuffer,Command_SD);
+	strcat(cmdBuffer, p_tcpPort);
+	strcat(cmdBuffer,",\"");
+	strcat(cmdBuffer, p_serverIp);
+	strcat(cmdBuffer,"\",0,0,1\r");
+
+	Send_ATCommand(cmdBuffer, "\r\nConnecting...");
+}
+/*********************************************************************/
+/* Returns the periodic data sent timeout based on the user settings */
+/*********************************************************************/
+TIMER_TICK_T Get_DataSendPeriod()
+{
+	FLASH_SETTINGS_T user_settings;
+	Get_UserSettings(&user_settings);
+
+	if(Get_IgnitionStatus() && (!gsm_info.b_roaming))
+		return user_settings.msg_period_not_roaming_ignited *100;
+
+	else if((!Get_IgnitionStatus()) && (!gsm_info.b_roaming))
+		return user_settings.msg_period_not_roaming_not_ignited *100;
+
+	else if(Get_IgnitionStatus() && (gsm_info.b_roaming))
+		return user_settings.msg_period_roaming_ignited *100;
+
+	else if(!Get_IgnitionStatus() && (gsm_info.b_roaming))
+		return user_settings.msg_period_roaming_not_ignited *100;
+}
+/****************************************************************************/
+void Init_GsmInfo()
+{
+//	memset(&gsm_info,  0, sizeof(gsm_info));
+	t_gsmState = MODULE_RESET_STATE;
+}
+/*****************************************************************************/
+void Set_ServerConnectionParameters(char *server_ip, char *server_port)
+{
+	strcpy(tcpConnectionInfo_t.tcpServerInfo_t.server_ip, server_ip);
+	strcpy(tcpConnectionInfo_t.tcpServerInfo_t.server_port, server_port);
+
+}
+/*******************************************************************************/
+void Delay(TIMER_TICK_T delay, void (*callbackFunc)())
+{
+	TIMER_INFO_T wait_timer;
+	Set_Timer(&wait_timer, delay);
+	while (!mn_timer_expired(&wait_timer)){
+		if(callbackFunc != NULL)
+			callbackFunc();
+	}
+}
+/********************************************************************************/
+void GSM_HardReset()
+{
+	PRINT_K("Module hard reset\r\n");
+
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GSM_RESET_PIN, true);
+	Delay(25, onIdle);
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GSM_RESET_PIN, false);
+	Delay(700, onIdle);
+}
+/**********************************************************************************/
+bool Restart_Modem()
+{
+	char buffer[32];
+
+	RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+	RingBuffer_Init(&gsm_txring, gsm_txbuff, 1, GSM_UART_SRB_SIZE);
+
+	Send_ATCommand(Command_RESET, "Module soft-reset\r\n");
+	ProcessATResponse(buffer,sizeof(buffer), 500, onIdle);
+//	Delay(1000);
+//	PRINT_K(buffer);
+	if(strstr(buffer, p_strOK) == NULL)
+		return false;
+
+//	PRINT_K("\r\nModem soft-resetted\r\n");
+	return true;
+}
+/************************************************************************/
+bool Send_MessageToServer(char *pBuffer, uint16_t i_msgLen, void (*onIdleCallback)())
+{
+	char temp[8];
+	char responseBuf[16];
+
+		itoa(i_msgLen, temp, 10);
+		Start_SendingData(i_msgLen);
+		ProcessATResponse(responseBuf, sizeof(responseBuf), 200, onIdleCallback);
+		if(strchr(responseBuf, '>') != NULL){
+			Chip_UART_SendRB(GSM_UART, &gsm_txring, pBuffer, i_msgLen);
+			ProcessATResponse(responseBuf, sizeof(responseBuf), 200, onIdleCallback);
+			if(strstr(responseBuf, p_strOK) == NULL)
+				return false;
+			else
+				return true;
+		}
+		else
+			return false;
+}
+/************************************************************/
+bool Gsm_CloseSocket()
+{
+	char buffer[32];
+
+	Send_ATCommand(Command_ATSH, "Closing socket...");
+	ProcessATResponse(buffer, sizeof(buffer), 500, NULL);
+	if(strstr(buffer, "OK") != NULL){
+		PRINT_K("Done\r\n");
+		return TRUE;
+	}
+	return FALSE;
+}
+/******************************************************************************/
+void Start_SendingData(uint16_t i_msgLen)
+{
+	char temp[8];
+
+	char cmdBuffer[32];
+
+	memset(cmdBuffer,0, sizeof(cmdBuffer));
+
+	itoa(i_msgLen, temp, 10);
+
+	strcat(cmdBuffer,Command_SSENDEXT);
+	strcat(cmdBuffer,temp);
+	strcat(cmdBuffer, "\r");
+	Send_ATCommand(cmdBuffer,"");
+}
+/*******************************************************************************/
+void Initialize_Timers()
+{
+	Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+	Set_Timer(&SEND_OFFLINE_DATA_TIMER, OFFLINE_DATA_SEND_INTERVAL);
+	Set_Timer(&SEND_PERIODIC_DATA_TIMER, Get_DataSendPeriod());
+	Set_Timer(&SMS_CHECK_TIMER, MODULE_STATUS_CHECK_INTERVAL);
+}
+/*********************************************************************************/
+bool CheckModemStatus()
+{
+	char buffer[256];
+	bool success = FALSE;
+
+	Send_ATCommand(Command_CMGR,"");
+	ProcessATResponse(buffer, sizeof(buffer), 200, onIdle);
+
+	success = Get_GsmRegistrationStatus(buffer);    /* get registration status  */
+	success = Get_BatteryVoltage(buffer);
+	success = Get_GsmSignalPower(buffer);           /* get CSQ value */
+	success = Get_SMS(buffer);
+	success = Get_SocketStats(buffer);
+	success = Get_SocketStatus(buffer);
+
+	return success;
+
+}
+/*************************************************************************
+ * Returns an AT response parameter specified by param_no                *
+ *************************************************************************/
+int Get_ValueByParamIndex(char *buffer, int param_no)
+{
+	char *p_temp;
+	char *p_start;
+	int i_commaCount =0;
+	char tempBuffer[128];
+
+	memset(tempBuffer, 0, sizeof(tempBuffer));
+	memcpy(tempBuffer, buffer, sizeof(tempBuffer));
+
+	p_start = strchr(tempBuffer,' ');
+	if(p_start == NULL)
+		return 0;
+	p_temp = strtok(p_start,"\r,");
+	while (p_temp != NULL){
+		if(++i_commaCount == param_no)
+			return atoi(p_temp);
+		p_temp = strtok (NULL, "\r,");
+	}
+	return 0;
+}
+/********************************************************************/
+bool Get_GsmRegistrationStatus(char *buffer)
+{
+	char *p_temp;
+	int reg;
+	/* check registration status*/
+	p_temp = strstr(buffer, "+CREG: ");
+	if(p_temp != NULL){
+		reg = Get_ValueByParamIndex(p_temp, 2);
+		Update_GsmRegistrationStatus(reg);
+		return TRUE;
+	}
+	return FALSE;
+}
+/********************************************************************/
+bool Get_BatteryVoltage(char *buffer)
+{
+	char *p_temp;
+    p_temp = strstr(buffer, "#CBC");
+    if(p_temp != NULL)
+    	gsm_info.batteryLevel = Get_ValueByParamIndex(p_temp, 2);
+
+    return TRUE;
+}
+/*********************************************************************/
+bool Get_GsmSignalPower(char *buffer)
+{
+	char *p_temp;
+    p_temp = strstr(buffer, "+CSQ: ");
+	if(p_temp != NULL)
+	    gsm_info.csq = Get_ValueByParamIndex(p_temp, 1);
+
+	return TRUE;
+}
+/********************************************************************/
+bool Get_SMS(char *buffer)
+{
+	FLASH_SETTINGS_T user_settings;
+	char commandResponse[MAX_T_MESSAGE_SIZE];
+	char *p_temp;
+	char *p_data;
+	bool success = TRUE;
+
+	Get_UserSettings(&user_settings);
+	memset(commandResponse, 0, MAX_T_MESSAGE_SIZE);
+
+	if(user_settings.sms_activation == TRUE){
+	/* check SMS*/
+		p_temp = strstr(buffer, "+CMGR:");
+
+		if(p_temp != NULL){
+			p_data = strstr(p_temp, TRIO_CONFIG_WORD);
+			if(p_data != NULL){
+				p_temp = strchr(p_temp, '\r');
+				if(p_temp != NULL){
+					*p_temp = '\0';
+					ProcessReceivedData(p_data, commandResponse);
+				}
+				else
+					success =  FALSE;
+			}
+		}
+	}
+
+	return success;
+}
+/********************************************************************/
+bool Get_SocketStats(char *buffer)
+{
+	char *p_temp;
+
+	p_temp = strstr(buffer, "#SI:");
+	if(p_temp != NULL){
+		gsm_info.gsm_stats.u16_totalBytesSent      = Get_ValueByParamIndex(p_temp, 2);
+		gsm_info.gsm_stats.u16_totalBytesRecv      = Get_ValueByParamIndex(p_temp, 3);
+		gsm_info.gsm_stats.u16_totalBytesBuffered  = Get_ValueByParamIndex(p_temp, 4);
+		gsm_info.gsm_stats.u16_totalBytesNonAcked1 = Get_ValueByParamIndex(p_temp, 5);
+
+		i_tempNonAckedBytes += gsm_info.gsm_stats.u16_totalBytesNonAcked1 - gsm_info.gsm_stats.u16_totalBytesNonAcked2;
+		gsm_info.gsm_stats.u16_totalBytesNonAcked2 = gsm_info.gsm_stats.u16_totalBytesNonAcked1;
+		return TRUE;
+	}
+	return FALSE;
+}
+/********************************************************************/
+bool Get_SocketStatus(char *buffer)
+{
+	char *p_temp;
+
+	p_temp = strstr(buffer, "#SS:");   /* get socket status*/
+	if(p_temp != NULL){
+		if(Get_ValueByParamIndex(p_temp, 2) == 0)
+			gsm_info.b_socketActive = FALSE;
+		else
+			gsm_info.b_socketActive = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+/*****************************************************************************/
+#define MAX_TCP_READ_BLOCK_SIZE     256
+#define MAX_SRECV_STRING_SIZE       44
+
+uint16_t Get_TcpDataSegment(char * buffer, uint16_t length, void (*callback)())
+{
+	uint16_t u16_len, i;
+	char cmdBuffer[64];
+	char tempBuffer[300];
+	char temp[8];
+	char *ptrData;
+	char *pnewline;
+
+	memset(tempBuffer, 0, sizeof(tempBuffer));
+	memset(cmdBuffer, 0, sizeof(cmdBuffer));
+
+	itoa(length, temp, 10);
+
+	strcat((char *)cmdBuffer, Command_SRECV);
+	strcat((char *)cmdBuffer, temp);
+	strcat((char *)cmdBuffer,"\r");
+
+	Send_ATCommand(cmdBuffer, "");
+
+	u16_len = ProcessATResponse(tempBuffer, sizeof(tempBuffer), 200, callback);
+	ptrData = strstr(tempBuffer, "SRECV:" );
+	if(ptrData != NULL){
+		pnewline = strstr(ptrData, "\r\n");
+			if(pnewline != NULL){
+				u16_len = Get_ValueByParamIndex(tempBuffer, 2);
+					for(i = 0; i < u16_len; i++)
+						buffer[i] = *(pnewline + 2 + i);  /* move data to output buffer*/
+					return u16_len;
+			}
+			else return 0;
+	}
+	else
+		return 0;
+}
+
+/*****************************************************************************/
+uint16_t Get_GsmTcpBuffer(char *buffer, uint16_t length, void (*callBackFunc)())
+{
+	uint16_t dataoffset = 0;
+	uint16_t u16_segmentSize;
+	char segmentBuffer[256];
+
+	memset(buffer, 0, length);
+
+	if(length < MAX_TCP_RECEIVE_SIZE){
+		u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+		return u16_segmentSize;
+	}
+	else{
+		while(Get_NumberOfBufferedTcpBytes(callBackFunc) > 0){
+			u16_segmentSize = Get_TcpDataSegment(segmentBuffer, MAX_TCP_RECEIVE_SIZE, callBackFunc);
+			memcpy(&buffer[dataoffset], segmentBuffer, u16_segmentSize);
+			dataoffset += u16_segmentSize;
+		}
+		return dataoffset;
+	}
+}
+/*****************************************************************************/
+uint16_t Get_NumberOfBufferedTcpBytes(void (*callBackFunc)())
+{
+	char buffer[64];
+	char *p_temp;
+	uint16_t u16_response;
+
+	Send_ATCommand("AT#SI=1\r","");
+	u16_response = ProcessATResponse(buffer, sizeof(buffer), 200, callBackFunc);
+	if(u16_response > 0) {
+		p_temp = strstr((char *)buffer, "#SI:");
+		    if(p_temp != NULL)
+		    	return Get_ValueByParamIndex(p_temp, 4);
+		    else return 0;
+	}
+	return 0;
+}
+/**************************************************************************/
+void Update_LedStatus()
+{
+	if(mn_timer_expired(&HEARTBEAT_TIMER)) {
+		Set_Timer(&HEARTBEAT_TIMER, HEARTBEAT_INTERVAL);
+		Board_LED_Toggle(P_OKLED);
+	}
+}
+/****************************************************************************/
+void onIdle()
+{
+	Trio_GpsTask();
+	Trio_StatusTask();
+	Trio_SPITask();
+	Trio_DebugPortTask();
+	Update_LedStatus();
+}

@@ -1,0 +1,774 @@
+/*
+ * Settings.c
+
+ *
+ *  Created on: 30 Tem 2015
+ *      Author: admin
+ */
+
+#include "board.h"
+#include "status.h"
+#include "gsm.h"
+#include "gps.h"
+#include "spi.h"
+#include "bootloader.h"
+#include "messages.h"
+#include "settings.h"
+#include "utils.h"
+#include "sst25.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+TCP_CONNECTION_INFO_T firmwareUpdateServerInfo_t;
+FLASH_SETTINGS_T flash_settings;
+//COMMAND_RESPONSE_T commandResponse_t;
+
+/* callback functions for flash write operations*/
+COMMAND_RESULT_T update_server_and_port_setting(char *const buffer, COMMAND_RESPONSE_T *response);
+COMMAND_RESULT_T update_message_period_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_roaming_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_sms_act_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_speed_limit_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_engine_blockage_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_km_counter_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_device_id(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T reset_device(char *const buffer,  COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T request_device_status(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T uncontrolled_engine_blockage(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T location_request(char*const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_apn_setting(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_password(char *const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T update_firmware(char *const buffer,  COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_RESULT_T gps_cold_restart(char * const buffer, COMMAND_RESPONSE_T *echoBuffer);
+COMMAND_TYPE_T Get_ConfigurationCommand(char *buffer);
+void Get_ConfigurationParameter(char * const, char *, COMMAND_RESPONSE_T *);
+
+void BeginEchoPacket(char *buffer, COMMAND_TYPE_T command);
+void CloseEchoPacket(char *buffer);
+void AddStringToEchoPacket(char *buffer, char *strToAdd);
+
+void Init_EchoInfo();
+
+#define  VALID_SETTINGS_PAGE_SIGN_ADDR  		(249 * 4096)
+
+#define  VALID_SETTINGS_SIGN                     0xAA55AA55
+static   uint32_t u32_flashKmCounter = 0;
+/*************************************************************************/
+const SETTING_INFO_T settings_info[] =
+{
+	{ SERVER_AND_PORT_SETTING,       update_server_and_port_setting },
+    { MESSAGE_PERIOD_SETTING,        update_message_period_setting },
+	{ ROAMING_ACTIVATION,            update_roaming_setting },
+	{ SMS_ACTIVATION,                update_sms_act_setting },
+	{ SPEED_LIMIT_SETTING,           update_speed_limit_setting },
+	{ ENGINE_BLOCKAGE_SETTING,       update_engine_blockage_setting},
+	{ KM_COUNTER,                    update_km_counter_setting},
+	{ DEVICE_RESET,                  reset_device },
+	{ DEVICE_ID_SETTING,             update_device_id },
+	{ DEVICE_STATUS_REQUEST,         request_device_status },
+	{ LOCATION_REQUEST,              location_request },
+	{ APN_SETTING,                   update_apn_setting },
+	{ CHANGE_PASSWORD,               update_password },
+	{ FIRMWARE_UPDATE_REQUEST,       update_firmware},
+	{ GPS_COLD_RESTART,              gps_cold_restart}
+};
+/*********************************************************************************/
+COMMAND_RESULT_T ParseConfigurationString(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	COMMAND_TYPE_T command;
+	COMMAND_RESULT_T result = REPLY_DO_NOT_SEND;
+	uint32_t i;
+	PRINT_K("\r\nCOMAND 1\r\n");
+	command = Get_ConfigurationCommand(buffer);
+	for(i = 0; i < sizeof(settings_info) / sizeof(settings_info[0]); i++ ){
+		if(command == settings_info[i].command){
+		//	Init_EchoInfo();
+			PRINT_K("\r\nCOMAND 2\r\n");
+			result = settings_info[i].update_callback(buffer, response);
+			break;
+		}
+	}
+	return result;
+}
+/***********************************************************************/
+COMMAND_TYPE_T Get_ConfigurationCommand(char *buffer)
+{
+	 char *pTemp;
+
+	 pTemp = strtok (buffer,";");
+	 if(pTemp != NULL){
+		/* PRINT_K("Command ID\r\n");
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");*/
+		 return (COMMAND_TYPE_T)atoi(buffer);
+	 }
+	 else
+		 return (COMMAND_TYPE_T)0;
+}
+/************************************************************************/
+void Get_ConfigurationParameter(char * const in_buffer, char *out_buffer, char *seperator)
+{
+	char *pTemp;
+	pTemp = strtok(NULL, seperator);
+	strcpy(out_buffer, pTemp);
+}
+/************************************************************************/
+COMMAND_RESULT_T update_server_and_port_setting(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char transactionID[16];
+	//char *pBuf;
+	/*PRINT_K("\r\nCommand string\r\n");
+	PRINT_K(buffer);*/
+	/* extract server ip address*/
+	Get_ConfigurationParameter(NULL, flash_settings.server_ip, ";");
+	/* extract port number*/
+	Get_ConfigurationParameter(NULL, flash_settings.server_port, ";");
+	/* extract transaction id*/
+	Get_ConfigurationParameter(NULL, transactionID, "!");
+
+	Update_Settings();
+
+  //  pBuf = echo_packet.data;
+
+	BeginEchoPacket(response->buffer, SERVER_AND_PORT_SETTING);
+	AddStringToEchoPacket(response->buffer, flash_settings.server_ip);
+	AddStringToEchoPacket(response->buffer, flash_settings.server_port);
+	AddStringToEchoPacket(response->buffer, transactionID);
+	CloseEchoPacket(response->buffer);
+
+//	echo_packet.dataLen = strlen(echo_packet.data);
+	response->b_needToReset = TRUE;
+	return REPLY_ECHO_PACKET;
+}
+/*************************************************************************/
+COMMAND_RESULT_T update_message_period_setting(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[16];
+	bool success = false;
+	char transactionID[16];
+	//char *pBuf;
+
+/*	PRINT_K("\r\nIn update_message_period_setting\r\n");
+	PRINT_K(buffer);*/
+
+//	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(NULL, temp, ";");
+
+	if(strcmp(temp, "0") == 0) {
+		Get_ConfigurationParameter(NULL, temp, ";");
+		flash_settings.msg_period_not_roaming_ignited = atoi(temp);
+		Get_ConfigurationParameter(NULL, temp, ";");
+		flash_settings.msg_period_not_roaming_not_ignited = atoi(temp);
+		/* extract transaction id*/
+		Get_ConfigurationParameter(NULL, transactionID, "!");
+
+		Update_Settings();
+
+		BeginEchoPacket(response->buffer, MESSAGE_PERIOD_SETTING);
+		AddStringToEchoPacket(response->buffer, "0");
+		itoa(flash_settings.msg_period_not_roaming_ignited, temp, 10);
+		AddStringToEchoPacket(response->buffer, temp);
+		itoa(flash_settings.msg_period_not_roaming_not_ignited, temp, 10);
+		AddStringToEchoPacket(response->buffer, temp);
+		success = true;
+	}
+	else if(strcmp(temp, "1") == 0) {
+		Get_ConfigurationParameter(NULL, temp, ";");
+		flash_settings.msg_period_roaming_ignited = atoi(temp);
+		Get_ConfigurationParameter(NULL, temp, ";");
+		flash_settings.msg_period_roaming_not_ignited = atoi(temp);
+		/* extract transaction id*/
+		Get_ConfigurationParameter(NULL, transactionID, "!");
+
+		Update_Settings();
+
+		BeginEchoPacket(echoBuffer, MESSAGE_PERIOD_SETTING);
+		AddStringToEchoPacket(response->buffer, "1");
+		itoa(flash_settings.msg_period_roaming_ignited, temp, 10);
+		AddStringToEchoPacket(response->buffer, temp);
+		itoa(flash_settings.msg_period_roaming_not_ignited, temp, 10);
+		AddStringToEchoPacket(response->buffer, temp);
+		success = true;
+	}
+	if(success){
+		AddStringToEchoPacket(response->buffer, transactionID);
+		CloseEchoPacket(response->buffer);
+	//	echo_packet.dataLen = strlen(echo_packet.data);
+		return REPLY_ECHO_PACKET;
+	}
+	else
+		return REPLY_DO_NOT_SEND;
+}
+/***********************************************************************/
+COMMAND_RESULT_T update_roaming_setting(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+	char transactionID[16];
+//	char *pBuf;
+	bool success = false;
+
+//	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(NULL, temp, ";");
+
+	if(strcmp(temp, "0") == 0){
+		flash_settings.roaming_activation = FALSE;
+		Get_ConfigurationParameter(NULL, transactionID, "!");
+		Update_Settings();
+
+		BeginEchoPacket(response->buffer, ROAMING_ACTIVATION);
+		AddStringToEchoPacket(response->buffer, "0");
+		success = true;
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.roaming_activation = TRUE;
+		Get_ConfigurationParameter(NULL, transactionID, "!");
+		Update_Settings();
+
+		BeginEchoPacket(echoBuffer, ROAMING_ACTIVATION);
+		AddStringToEchoPacket(response->buffer, "1");
+		success = true;
+	}
+	if(success){
+		AddStringToEchoPacket(response->buffer, transactionID);
+		CloseEchoPacket(response->buffer);
+	//	echo_packet.dataLen = strlen(echo_packet.data);
+		return REPLY_ECHO_PACKET;
+	}
+	return REPLY_DO_NOT_SEND;
+}
+/****************************************************************/
+COMMAND_RESULT_T update_sms_act_setting(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+
+	Get_ConfigurationParameter(NULL, temp, ";");
+	if(strcmp(temp, "0") == 0){
+		flash_settings.sms_activation = FALSE;
+		Update_Settings();
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.sms_activation = TRUE;
+		Update_Settings();
+	}
+	return REPLY_DO_NOT_SEND;
+}
+/***************************************************************/
+COMMAND_RESULT_T update_speed_limit_setting(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	uint16_t u16_speedLimit;
+	uint16_t u16_duration;
+	char transactionID[16];
+	char temp[8];
+//	char *pBuf;
+
+	/* extract speed limit*/
+	Get_ConfigurationParameter(buffer, temp, ";");
+	u16_speedLimit = atoi(temp);
+	flash_settings.u16_speedLimit = u16_speedLimit;
+
+    /* extract speed limit violation duration */
+	Get_ConfigurationParameter(buffer, temp, ";");
+	u16_duration = atoi(temp);
+	flash_settings.u16_speedLimitViolationDuration = u16_duration;
+
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+
+	Update_Settings();
+//	pBuf = echo_packet.data;
+
+	BeginEchoPacket(response->buffer, SPEED_LIMIT_SETTING);
+    itoa(flash_settings.u16_speedLimit, temp, 10);
+	AddStringToEchoPacket(response->buffer, temp);
+	itoa(flash_settings.u16_speedLimitViolationDuration, temp, 10);
+	AddStringToEchoPacket(response->buffer, temp);
+
+	AddStringToEchoPacket(response->buffer, transactionID);
+	CloseEchoPacket(echoBuffer);
+
+	//echo_packet.dataLen = strlen(echo_packet.data);
+	return REPLY_ECHO_PACKET;
+}
+/*******************************************************************/
+uint8_t update_engine_blockage_setting(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char param[2];
+	//char *pBuf;
+
+	bool success = false;
+	STATUS_INFO_T status_info;
+	static char transactionID[16];
+
+//	pBuf = echo_packet.data;
+
+	Get_ConfigurationParameter(buffer, param, ";");
+	if(strcmp(param, "0") == 0){
+		flash_settings.engine_blockage = FALSE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		BeginEchoPacket(response->buffer, ENGINE_BLOCKAGE_SETTING);
+		AddStringToEchoPacket(echoBuffer, "0");   /* blockage removed*/
+		success = true;
+	}
+	else if(strcmp(param, "1") == 0){
+		flash_settings.engine_blockage = TRUE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+
+		Update_Settings();
+		Get_StatusInfo(&status_info);
+
+		BeginEchoPacket(response->buffer, ENGINE_BLOCKAGE_SETTING);
+		AddStringToEchoPacket(response->buffer, "1");
+		success = true;
+	}
+	if(success){
+		AddStringToEchoPacket(response->buffer, transactionID);
+		CloseEchoPacket(echoBuffer);
+	//	echo_packet.dataLen = strlen(echo_packet.data);
+	}
+	return REPLY_ECHO_PACKET;
+}
+/*******************************************************************/
+COMMAND_RESULT_T update_km_counter_setting(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[128];
+	uint32_t u32_flashKmTempCounter;
+	char transactionID[16];
+//	char *pBuf;
+
+	u32_flashKmTempCounter = u32_flashKmCounter;
+//	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, temp, ";");
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+	u32_flashKmTempCounter = atoi(temp) / 10000;
+
+	if(UpdateKmCounter(u32_flashKmTempCounter) == true)
+		u32_flashKmCounter = u32_flashKmTempCounter;
+
+	BeginEchoPacket(response->buffer, KM_COUNTER);
+	itoa(u32_flashKmCounter, temp, 10);
+	/*PRINT_K("\r\nNew km counter\r\n");
+	PRINT_K(temp);
+	PRINT_K("\r\n");*/
+	strcat(temp,"0000");
+	AddStringToEchoPacket(response->buffer, temp);
+	AddStringToEchoPacket(response->buffer, transactionID);
+	CloseEchoPacket(response->buffer);
+
+//	echo_packet.dataLen = strlen(echo_packet.data);
+	return REPLY_ECHO_PACKET;
+}
+/*******************************************************************/
+COMMAND_RESULT_T reset_device(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "1") == 0)
+		NVIC_SystemReset();
+
+	return REPLY_DO_NOT_SEND;
+}
+/*******************************************************************/
+COMMAND_RESULT_T update_device_id(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	uint8_t i;
+	char transactionID[16];
+//	char *pBuf;
+
+	Get_ConfigurationParameter(buffer, flash_settings.device_id, ";");
+	for(i= 0; i< sizeof(flash_settings.device_id)- 1; i++){
+		if(!isdigit(flash_settings.device_id[i])){
+			return REPLY_DO_NOT_SEND;
+		}
+	}
+//	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+	Update_Settings();
+
+	BeginEchoPacket(response->buffer, DEVICE_ID_SETTING);
+	AddStringToEchoPacket(response->buffer, flash_settings.device_id);
+	AddStringToEchoPacket(response->buffer, transactionID);
+	CloseEchoPacket(response->buffer);
+
+	//echo_packet.dataLen = strlen(echo_packet.data);
+	return REPLY_ECHO_PACKET;
+
+}
+/*********************************************************************/
+COMMAND_RESULT_T request_device_status(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "1") == 0){
+		return 2;
+	}
+	else
+		return REPLY_DO_NOT_SEND;
+}
+/************************************************************/
+/* not implemented n the current version                     /
+*************************************************************/
+COMMAND_RESULT_T uncontrolled_engine_blockage(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "0") == 0){
+	//	flash_settings.uncontrolled_blockage = FALSE;
+		Update_Settings();
+	}
+	else if(strcmp(temp, "1") == 0){
+		//flash_settings.uncontrolled_blockage = TRUE;
+		Update_Settings();
+	}
+	return REPLY_DO_NOT_SEND;
+}
+/********************************************************************/
+/*  Send a T message in response to location request                 *
+*********************************************************************/
+COMMAND_RESULT_T location_request(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char temp[2];
+	PRINT_K("\r\nCOMAND 3\r\n");
+	Get_ConfigurationParameter(NULL, temp, "!");
+	if(strcmp(temp, "1") == 0){
+		PRINT_K("\r\nCOMAND 4\r\n");
+		Trio_PrepareTMessage(response->buffer, TRUE);
+		return REPLY_ECHO_PACKET;
+	}
+	//	PRINT_K("\r\nSending Location request\r\n");
+/*		return REPLY_SEND_LOCATION;
+	}*/
+	else
+		return REPLY_DO_NOT_SEND;
+}
+/********************************************************************/
+COMMAND_RESULT_T update_apn_setting(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char transactionID[16];
+	//char *pBuf;
+
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apn, ";");
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apnusername, ";");
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apnpassword, ";");
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+	Update_Settings();
+
+//	pBuf = echo_packet.data;
+
+	BeginEchoPacket(response->buffer, APN_SETTING);
+	AddStringToEchoPacket(response->buffer, flash_settings.flash_apn);
+	AddStringToEchoPacket(response->buffer, flash_settings.flash_apnusername);
+	AddStringToEchoPacket(response->buffer, flash_settings.flash_apnpassword);
+	AddStringToEchoPacket(response->buffer, transactionID);
+	CloseEchoPacket(response->buffer);
+
+//	echo_packet.dataLen = strlen(echo_packet.data);
+	echo_packet.b_needToReset = TRUE;
+	return REPLY_ECHO_PACKET;
+}
+/********************************************************************/
+COMMAND_RESULT_T update_password(char *const buffer, COMMAND_RESPONSE_T *response)
+{
+	char transactionID[16];
+	char pswdBuf[MAX_SET_COMMAND_PSWD_LENGTH + 1];
+//	char *pBuf;
+
+	Get_ConfigurationParameter(buffer, pswdBuf, ";");
+
+	if(strlen(pswdBuf) > MAX_SET_COMMAND_PSWD_LENGTH)
+		return 0;
+	else{
+		strcpy(flash_settings.password, pswdBuf);
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		//pBuf = echo_packet.data;
+		BeginEchoPacket(response->buffer, CHANGE_PASSWORD);
+		AddStringToEchoPacket(response->buffer, flash_settings.password);
+		AddStringToEchoPacket(response->buffer, transactionID);
+		CloseEchoPacket(response->buffer);
+
+	//	echo_packet.dataLen = strlen(echo_packet.data);
+		return REPLY_ECHO_PACKET;
+	}
+}
+/********************************************************************/
+COMMAND_RESULT_T update_firmware(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	char server_ip[128];
+	char server_port[6];
+		//PRINT_K("UpdatenFirmeare");
+		/* get firmware update server ip address*/
+	Get_ConfigurationParameter(buffer, server_ip , ";");
+	/* get firmware update TCP port number*/
+	Get_ConfigurationParameter(buffer, server_port, ";");
+
+	Set_ServerConnectionParameters(server_ip, server_port);
+
+	return REPLY_CONNECT_TO_UPDATE_SERVER;
+}
+/********************************************************************/
+COMMAND_RESULT_T gps_cold_restart(char * const buffer, COMMAND_RESPONSE_T *response)
+{
+	PRINT_K("\r\nCOLD RESTARTING...\r\n");
+	send_mtk_command("$PMTK104*37\r\n");
+}
+/*********************************************************************/
+void Update_Settings()
+{
+//	SST25_EraseSector(FIRST_FLASH_SETTINGS_ADDRESS / SST25_SECTOR_SIZE);
+	SST25_WriteArray((char *)&flash_settings, sizeof(flash_settings), FIRST_FLASH_SETTINGS_ADDRESS);
+	Load_UserSettings();   /* reload updated settings from FLASH to RAM*/
+	PRINT_K("SETTINGS UPDATED\r\n");
+}
+/********************************************************************/
+extern RINGBUFF_T debug_txring,debug_rxring;
+void Load_UserSettings()
+{
+	uint32_t temp1;
+	uint32_t temp2;
+	uint32_t u32_validSign;
+	char buffer[10];
+
+	/* check if first 4 bytes of flash regions is empty */
+	SST25_Read(FIRST_FLASH_SETTINGS_ADDRESS, 4, (char *)&temp1);
+	SST25_Read(SECOND_FLASH_SETTINGS_ADDRESS, 4, (char *)&temp2);
+	/*Print_Val("temp1: ", temp1);
+	Print_Val("temp2: ", temp2);
+	PRINT_K("\r\n");*/
+	/* This section is only active in production programming */
+	if((temp1 == 0xFFFFFFFF) && (temp2 == 0xFFFFFFFF)) {
+		PRINT_K("WRITING FACTORY SETTINGS\r\n");
+		memset(&flash_settings, 0,sizeof(flash_settings));
+		strcpy(flash_settings.flash_apn, "triomobil_apn");
+	    strcpy(flash_settings.flash_apnpassword, "apnpassword");
+	    strcpy(flash_settings.flash_apnusername, "apnusername");
+		strcpy(flash_settings.device_id, "1234567890ABCDE");
+		strcpy(flash_settings.server_ip, "178.63.30.81");
+		strcpy(flash_settings.server_port, "6081");
+		/*strcpy(flash_settings.server_ip, "213.14.184.87");
+		strcpy(flash_settings.server_port, "1555");*/
+		strcpy(flash_settings.password, "password");
+		flash_settings.engine_blockage = FALSE;
+		flash_settings.sms_activation = TRUE;
+		flash_settings.roaming_activation = FALSE;
+		flash_settings.u16_speedLimit = 30;
+		flash_settings.u16_speedLimitViolationDuration = 10;
+		flash_settings.u32_maxStopTime = 60;
+		flash_settings.u32_maxIdleTime = 15;
+		flash_settings.msg_period_not_roaming_ignited = (5);
+		flash_settings.msg_period_not_roaming_not_ignited = (15 * 60);
+		flash_settings.msg_period_roaming_ignited=  (15 * 60);
+		flash_settings.msg_period_roaming_not_ignited =  (20 * 60);
+
+		SST25_WriteArray((char *)&flash_settings, sizeof(flash_settings), FIRST_FLASH_SETTINGS_ADDRESS);
+		SST25_WriteArray((char *)&flash_settings, sizeof(flash_settings), SECOND_FLASH_SETTINGS_ADDRESS);
+		u32_validSign = VALID_SETTINGS_SIGN;
+	//	SST25_WriteArray((char *)&u32_validSign, 4, VALID_SETTINGS_PAGE_SIGN_ADDR);
+	}
+
+	//SST25_Read(VALID_SETTINGS_PAGE_SIGN_ADDR, 4, (char *)&u32_validSign);
+	//if(u32_validSign == VALID_SETTINGS_SIGN){
+//	PRINT_K("\r\nLoading settings from page 250\r\n");
+	SST25_Read(FIRST_FLASH_SETTINGS_ADDRESS, sizeof(flash_settings), (char *)&flash_settings);
+/*	}
+	else{
+		PRINT_K("Loading settings from page 251");
+		SST25_Read(SECOND_FLASH_SETTINGS_ADDRESS, sizeof(flash_settings), (char *)&flash_settings);
+	}*/
+	/* PRINT_K("\r\n");
+		 PRINT_K(flash_settings.flash_apn);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.flash_apnpassword);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.flash_apnusername);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.device_id);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.server_ip);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.server_port);
+		 PRINT_K("\r\n");
+		 PRINT_K(flash_settings.password);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.engine_blockage, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.sms_activation, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.roaming_activation , buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.u16_speedLimit, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.u16_speedLimitViolationDuration, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.u32_maxStopTime, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.msg_period_not_roaming_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.msg_period_not_roaming_not_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.msg_period_roaming_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");
+		 itoa(flash_settings.msg_period_roaming_not_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 PRINT_K("\r\n");*/
+}
+/********************************************************/
+void Load_KmCounter()
+{
+
+	SST25_Read(KM_COUNTER_FLASH_ADDRESS, sizeof(u32_flashKmCounter), (char *)&u32_flashKmCounter);
+/*	PRINT_INT(u32_flashKmCounter);
+	PRINT_K("\r\n");*/
+}
+/********************************************************/
+/*void Init_EchoInfo()
+{
+	memset(&echo_packet, 0 ,sizeof(echo_packet));
+}*/
+/********************************************************/
+uint8_t GetEchoMessage(char *const destBuf, bool *b_needToReset)
+{
+	/*memcpy(destBuf, echo_packet.data, echo_packet.dataLen);
+	*b_needToReset = echo_packet.b_needToReset;
+	return echo_packet.dataLen;*/
+}
+/*********************************************************/
+void BeginEchoPacket(char *pBuf, COMMAND_TYPE_T command)
+{
+	GSM_INFO_T gsm_info;
+	char temp[4];
+
+	Get_GsmInfo(&gsm_info);
+	strcpy(pBuf, "@SET;");
+	strcat(pBuf,gsm_info.imei_no);
+	strcat(pBuf, ";");
+	itoa((int)command, temp, 10);
+	strcat(pBuf, temp);
+}
+/**********************************************************/
+void CloseEchoPacket(char *pBuf)
+{
+	strcat(pBuf, "!");
+}
+/***********************************************************/
+void AddStringToEchoPacket(char *pBuf, char *strToAdd)
+{
+	strcat(pBuf, ";");
+	strcat(pBuf, strToAdd);
+}
+/***********************************************************/
+bool IsPasswordCorrect(char *pswd)
+{
+	if(strcmp(pswd, flash_settings.password) == 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+/*************************************************************/
+void Get_UserSettings(FLASH_SETTINGS_T *user_settings)
+{
+	*user_settings = flash_settings;
+}
+/****************************************************************/
+bool UpdateKmCounter(uint32_t u32_kmValue)
+{
+	uint32_t u32_totalKm;
+	uint32_t u32_totalKmWritten;
+	char buffer[10];
+
+	u32_totalKm = u32_flashKmCounter + u32_kmValue;
+
+	PRINT_K("Update KM:");
+	SST25_WriteArray((char *)&u32_totalKm, sizeof(u32_totalKm), KM_COUNTER_FLASH_ADDRESS);
+	SST25_Read(KM_COUNTER_FLASH_ADDRESS, sizeof(u32_totalKmWritten), (char *)&u32_totalKmWritten);
+
+	itoa(u32_totalKmWritten, buffer, 10);
+	PRINT_K(buffer);
+	if(u32_totalKmWritten == u32_totalKm){
+		PRINT_K("Done\r\n");
+		return true;
+	}
+	else{
+		PRINT_K("Fail\r\n");
+		return false;
+	}
+}
+/*************************************************************************/
+void Get_UpdateServerParameters(TCP_CONNECTION_INFO_T *updateServerInfo_t)
+{
+	*updateServerInfo_t = firmwareUpdateServerInfo_t;
+}
+/**********************************************************************************/
+COMMAND_RESULT_T ProcessReceivedData(char *dataBuffer, COMMAND_RESPONSE_T *response)
+{
+	COMMAND_RESULT_T result = REPLY_DO_NOT_SEND;
+		char  pswdBuf[MAX_SET_COMMAND_PSWD_LENGTH + 1];
+		char *pPassword, *p_pswdStart;
+		char *p_dataStart, *p_temp;
+
+
+		/* test string for  update firmware command*/
+		//strcpy(recv_data->data,"#SET:password;503;78.186.137.43;503;99!");
+
+		p_dataStart = strstr(dataBuffer, TRIO_CONFIG_WORD);
+		if(p_dataStart != NULL){
+			p_temp = strchr(p_dataStart, '\r');
+			if(p_temp != NULL)
+				*p_temp = '\0';
+		//	PRINT_K(p_data);
+		/*	PRINT_K("\r\naaaaa\r\n");
+			PRINT_K(dataBuffer);
+			PRINT_K("\r\naaaaaa\r\n");*/
+
+			p_pswdStart = strchr(p_dataStart ,':');
+			if(p_pswdStart != NULL) {  /* password available */
+				pPassword = strtok(p_pswdStart, ";");
+				memcpy(pswdBuf, pPassword + 1, MAX_SET_COMMAND_PSWD_LENGTH);
+				if(!IsPasswordCorrect(pswdBuf)){
+					return result;
+				}
+				p_dataStart = strlen(pswdBuf) + pPassword + 2;  /* points to data*/
+				//	PRINT_K(pswdBuf);
+			}
+			else
+				p_dataStart = &dataBuffer[sizeof(TRIO_CONFIG_WORD)];
+
+			result = ParseConfigurationString(p_dataStart, response);
+		}
+		return result;
+}
+/***********************************************************************/
+uint16_t Get_MaxSpeedLimit()
+{
+	return flash_settings.u16_speedLimit;
+}
+/***********************************************************************/
+uint16_t Get_MaxSpeedViolationDuration()
+{
+	return flash_settings.u16_speedLimitViolationDuration;
+}
+/************************************************************************/
+uint32_t Get_MaxStopTime()
+{
+	return flash_settings.u32_maxStopTime;
+}
+/************************************************************************/
+uint32_t Get_FlashKmValue()
+{
+	return u32_flashKmCounter;
+}
+
+

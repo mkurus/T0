@@ -1,0 +1,64 @@
+/*
+ * messages.h
+ *
+ *  Created on: 30 Tem 2015
+ *      Author: admin
+ */
+
+#ifndef MESSAGES_H_
+#define MESSAGES_H_
+
+typedef enum
+{
+	DIGITAL_INPUT1_PASSIVE,
+	DIGITAL_INPUT1_ACTIVE,
+	DIGITAL_INPUT2_PASSIVE,
+	DIGITAL_INPUT2_ACTIVE,
+	SPEED_LIMIT_VIOLATION,
+	IDLE_TIME_INDICATION,
+	RFID_CARD_READING,
+	CANBUS_DATA_READY,
+	TEMP_SENSOR_DATA,
+	MAX_STOP_TIME_EXCEEDED,
+	EXT_POWER_STATUS_CHANGE,
+	BATTERY_LEVEL,
+	MAX_IDLE_TIME_EXCEEDED,
+	OFFLINE_DATA = 19,
+	ANALOG_INPUT_READING,
+	GARMIN_NAVIGATION,
+	CELL_ID,
+	IGNITION_STATUS_CHANGED,
+	TRIP_INFO,
+	GPS_INFO,
+	ROAMING_DATA,
+	SIM_REMOVED,
+}MESSAGE_TYPE_T;
+
+
+#define SW_VERSION  "R2246"
+#define BUILD_DATE  __DATE__
+#define BUILD_TIME  __TIME__
+
+
+#define VERSION    ";"SW_VERSION";"BUILD_DATE" "BUILD_TIME";"
+
+#define MAX_T_MESSAGE_SIZE             256
+
+
+#define IMEI_LEN              15
+#define IMSI_LEN              15
+#define DATE_LEN              6
+#define TIME_LEN              6
+
+int32_t Trio_PrepareTMessage(char *, bool);
+void Trio_PrepareTMessageBody(char *, bool);
+void Trio_BeginTMessage(char *);
+void Trio_EndTMessage(char *);
+int32_t Trio_PreparePingMessage(char *pBuffer, const char *imei_no);
+int32_t Trio_PrepareSTMessage(char *pBuffer);
+void Trio_PrepareTMessageExtension(char *, MESSAGE_TYPE_T);
+void Trio_BeginTMessageExtension(char *u8_tMessage);
+void Trio_AddTMessageExtensionSeperator(char *u8_tMessage);
+void StartSendingMessage(int);
+void Trio_StartTripInfoMessage(char *bufPtr);
+#endif /* MESSAGES_H_ */

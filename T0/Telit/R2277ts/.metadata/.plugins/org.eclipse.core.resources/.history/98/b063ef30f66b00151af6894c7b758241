@@ -1,0 +1,811 @@
+#include "board.h"
+#include "utils.h"
+#include "spi.h"
+#include "sst25.h"
+#include "timer.h"
+#include "gsm.h"
+#include "messages.h"
+#include <stdlib.h>
+#include <string.h>
+
+static void setupMaster(void);
+
+static void Init_SPI_PinMux(void);
+bool UpdateFlashWritePointer();
+void CacheTMessage(uint8_t *, uint32_t);
+void SST25_Jedec_ID_Read();
+void SPI0_IRQHandler(void);
+void Flush_OffLineDataCache();
+void Init_SPI_Cache();
+uint32_t Get_FlashReadAddress();
+
+volatile bool b_transferDone = FALSE;
+
+TIMER_INFO_T SPI_PROCESS_TIMER;
+TIMER_INFO_T OFFLINE_DATA_RECORD_TIMER;
+TIMER_INFO_T OFFLINE_DATA_FLUSH_TIMER;
+
+FLASH_T flash;
+#define SPI_PROCESS_TIMEOUT       2
+
+#define  OFFLINE_DATA_FLUSH_TIMEOUT           (100 * 60 * 30)
+/* Buffer sizes for SPI transfers */
+#define  SPI_RX_BUFFER_SIZE 256
+
+#define  SPI_TX_BUFFER_SIZE 256
+
+#define  FLASH_BUSY  0x01
+
+
+
+#define  SST25_FLASH_SECTOR_MASK			   0x00000FFF
+
+#define  SST25_FLASH_SIZE                      (1024 * 1024)
+
+#define  SST25_SECTOR_COUNT                    (SST25_FLASH_SIZE / SST25_SECTOR_SIZE)
+
+#define  ADDR_OF_NEXT_FLASH_LOCATION           (SST25_FLASH_SIZE - FLASH_SECTOR_SIZE)
+
+#define  ADDR_OF_NEXT_FLASH_LOCATION_MIRRORED  (SST25_FLASH_SIZE - 2 * FLASH_SECTOR_SIZE)
+
+#define  FLASH_READPTR_ADDRESS                  (253 * SST25_SECTOR_SIZE)
+
+#define  FLASH_WRITEPTR_ADDRESS                 (252 * SST25_SECTOR_SIZE)
+
+
+
+#define  OFFLINE_DATA_RECORD_INTERVAL        500
+#define  OFFLINE_DATA_CACHE_SIZE           	 1024
+typedef struct
+{
+	uint16_t cachedBytes;
+	uint8_t  cacheBuffer[OFFLINE_DATA_CACHE_SIZE];
+}OFFLINE_DATA_CACHE_T;
+
+
+/* Master transmit and receive buffers */
+uint8_t flashTransferRXBuffer[SPI_FLASH_RX_BUFFER_SIZE /2];
+uint8_t flashTransferTXBuffer[SPI_FLASH_TX_BUFFER_SIZE];
+
+/* SPI master transfer descriptor */
+SPIM_XFER_T spiFlashXfer;
+SPIM_XFER_T spiAccelXfer;
+
+#define SPIFLASHIRQHANDLER                 SPI0_IRQHandler
+#define SPIACCELIRQHANDLER                 SPI1_IRQHandler
+
+#define LPC_SPIFLASHPORT                   LPC_SPI0
+#define LPC_SPIACCELPORT                   LPC_SPI1
+
+#define LPC_SPIFLASHIRQNUM                 SPI0_IRQn
+#define LPC_SPIACCELIRQNUM                 SPI1_IRQn
+
+#define LPCMASTERCLOCKRATE                  (400000)
+
+static uint32_t flash_addr = 0;
+
+static OFFLINE_DATA_CACHE_T offLineDataCache_t;
+static uint32_t u32_nextAddrToBeWritten = 0;   /* Address of next flash address for T message */
+static uint32_t u32_nextRecordAddrSent = 0;    /* Address of next record to be sent */
+bool   b_flashWrapped = FALSE;
+void Trio_SPI_Init()
+{
+	  /* SPI initialization */
+      Init_SPI_PinMux();
+	  /* Setup SPI controllers */
+	  setupMaster();
+	  /* Enable SPI controller interrupts */
+	  NVIC_EnableIRQ(LPC_SPIMASTERIRQNUM);
+      /* Initialize cache buffer for write operations*/
+	  Init_SPI_Cache();
+
+	  /* read next flash address for off-line data recording */
+	  Set_Timer(&OFFLINE_DATA_RECORD_TIMER, OFFLINE_DATA_RECORD_INTERVAL);
+
+	  Set_Timer(&OFFLINE_DATA_FLUSH_TIMER, OFFLINE_DATA_FLUSH_TIMEOUT);
+}
+
+/* Initializes pin muxing for SPI0 interface -*/
+static void Init_SPI_PinMux(void)
+{
+	/* Enable the clock to the Switch Matrix */
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+
+	Chip_SWM_MovablePinAssign(SWM_SPI0_SSEL0_IO, 26);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_SCK_IO, 24);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MISO_IO, 25);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MOSI_IO, 15);
+
+	/* initialize SPI0 interface for accelerometer */
+	Chip_SWM_MovablePinAssign(SWM_SPI0_SCK_IO, 7);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MISO_IO, 6);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MOSI_IO, 1);
+
+	/* Disable the clock to the Switch Matrix to save power */
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+
+/* SPI master select assertion callback function */
+static void SPIMasterAssert(SPIM_XFER_T *pMasterXfer)
+{
+	/* Indicates the master just asserted the slave select
+	   signal */
+//	PRINT_K("SPIMasterAssert\r\n");
+}
+
+/* SPI master send data callback function */
+static void SPIMasterSendData(SPIM_XFER_T *pMasterXfer)
+{
+	/* This callback is called when the master needs more data to
+	   send. The pMasterXfer->pTXData buffer pointer and transfer size
+	   (in items) in pMasterXfer->txCount should be updated. */
+
+	/* If this function sets the pMasterXfer->terminate flag to true,
+	   this function won't be called again and the transfer will
+	   terminate when the current transmit buffer is complete. */
+	//PRINT_K("SPIMasterSendData\r\n");
+}
+
+/* SPI master receive data callback function */
+static void SPIMasterRecvData(SPIM_XFER_T *pMasterXfer)
+{
+	/* This callback is called when the master needs another receive
+	   buffer. The pMasterXfer->pRXData buffer pointer and transfer size
+	   (in items) in pMasterXfer->rxCount should be updated. */
+
+//	PRINT_K("SPIMasterRecvData\r\n");
+}
+
+/* SPI master select de-assertion callback function */
+static void SPIMasterDeAssert(SPIM_XFER_T *pMasterXfer)
+{
+	/* Indicates tha master just deasserted the slave select
+	   signal */
+//	PRINT_K("SPIMasterDeAssert\r\n");
+}
+
+/* SPI master transfer done callback */
+static void SPIMasterDone(SPIM_XFER_T *pMasterXfer)
+{
+	/* Indicates the transfer is complete */
+    b_transferDone = TRUE;
+}
+
+/* SPI master driver callbacks */
+static const SPIM_CALLBACKS_T spiFlashCallbacks = {
+	&SPIFlash_MasterAssert,
+	&SPIFlash_MasterSendData,
+	&SPIFlash_MasterRecvData,
+	&SPIFlash_MasterDeAssert,
+	&SPIFlash_MasterDone
+};
+static const SPIM_CALLBACKS_T spiAccelCallbacks = {
+	&SPIAccel_MasterAssert,
+	&SPIAccel_MasterSendData,
+	&SPIAccel_MasterRecvData,
+	&SPIAccel_MasterDeAssert,
+	&SPIAccel_MasterDone
+};
+/* Setup master controller */
+void setupMaster(void)
+{
+	SPIM_DELAY_CONFIG_T masterDelay;
+
+	/* Initialize SPI controllers */
+	Chip_SPI_Init(LPC_SPIFLASHPORT);
+	Chip_SPI_Init(LPC_SPIACCELPORT);
+
+	/* Call to initialize first SPI controller for mode0, master mode, MSB first */
+	Chip_SPI_ConfigureSPI(LPC_SPIFALSHPORT,SPI_MODE_MASTER |	    /* Enable master mode */
+						 	 SPI_CLOCK_CPHA0_CPOL0 |	            /* Set Clock polarity to 0 */
+							 SPI_CFG_MSB_FIRST_EN |                 /* Enable MSB first option */
+							 SPI_CFG_SPOL_LO);	                    /* Chipselect is active low */
+
+	/* Call to initialize second SPI controller for mode0, master mode, MSB first */
+	Chip_SPI_ConfigureSPI(LPC_SPIACCELPORT,SPI_MODE_MASTER |	    /* Enable master mode */
+							 SPI_CLOCK_CPHA0_CPOL0 |	            /* Set Clock polarity to 0 */
+							 SPI_CFG_MSB_FIRST_EN |                 /* Enable MSB first option */
+							 SPI_CFG_SPOL_LO);	                    /* Chipselect is active low */
+
+	/* Setup master clock rate, slave clock doesn't need to be setup */
+	Chip_SPIM_SetClockRate(LPC_SPIFLASHPORT, SPIFLASHCLOCKRATE);
+	Chip_SPIM_SetClockRate(LPC_SPIACCELPORT, SPIACCELCLOCKRATE);
+
+	/* Setup master delay (all chip selects) */
+	masterDelay.PreDelay = 0xD;
+	masterDelay.PostDelay = 0xD;
+	masterDelay.FrameDelay = 0xD;
+	masterDelay.TransferDelay = 0xD;
+	Chip_SPIM_DelayConfig(LPC_SPIFLASHPORT, &masterDelay);
+	Chip_SPIM_DelayConfig(LPC_SPIACCELPORT, &masterDelay);
+
+	/* For the SPI controller configured in master mode, enable SPI master interrupts
+	   for interrupt service. Do not enable SPI_INTENSET_TXDYEN. */
+	Chip_SPI_EnableInts(LPC_SPIFLASHPORT,  (SPI_INTENSET_RXDYEN |
+											SPI_INTENSET_RXOVEN | SPI_INTENSET_TXUREN | SPI_INTENSET_SSAEN |
+											SPI_INTENSET_SSDEN));
+
+	Chip_SPI_EnableInts(LPC_SPIACCELPORT,  (SPI_INTENSET_RXDYEN |
+											SPI_INTENSET_RXOVEN | SPI_INTENSET_TXUREN | SPI_INTENSET_SSAEN |
+											SPI_INTENSET_SSDEN));
+
+	/* Setup master transfer callbacks in the transfer descriptor */
+	spiFlashXfer.pCB = &spiFlashCallbacks;
+	spiAccelXfer.pCB = &spiAccelCallbacks;
+}
+/****************************************************************************/
+/* Interrupt service routine for SPI Flash transfers                        */
+/****************************************************************************/
+void SPI0_IRQHandler(void)
+{
+	uint32_t ints = Chip_SPI_GetPendingInts(LPC_SPIFLASHPORT);
+
+	/* Handle SPI slave interrupts only */
+	if ((ints & (SPI_INTENSET_RXDYEN | SPI_INTENSET_RXOVEN |
+				 SPI_INTENSET_TXUREN | SPI_INTENSET_SSAEN | SPI_INTENSET_SSDEN)) != 0) {
+		/* SPI slave handler */
+		Chip_SPIM_XferHandler(LPC_SPIFLASHPORT, &spiFlashXfer);
+	}
+}
+/****************************************************************************/
+/* Interrupt service routine for SPI Accelerometer transfers                        */
+/****************************************************************************/
+void SPI1_IRQHandler(void)
+{
+	uint32_t ints = Chip_SPI_GetPendingInts(LPC_SPIACCELPORT);
+
+	/* Handle SPI slave interrupts only */
+	if ((ints & (SPI_INTENSET_RXDYEN | SPI_INTENSET_RXOVEN |
+				 SPI_INTENSET_TXUREN | SPI_INTENSET_SSAEN | SPI_INTENSET_SSDEN)) != 0) {
+		/* SPI slave handler */
+		Chip_SPIM_XferHandler(LPC_SPIACCELPORT, &spiAccelXfer);
+	}
+}
+void send_spi_data( LPC_SPI_T *pSPI,
+					uint8_t *p_writeBuffer,
+				    uint16_t u8_numBytesToBeWritten,
+				    uint8_t *p_readBuffer,
+				    uint16_t u8_numBytesToBeRead )
+{
+	SPIM_XFER_T spiXfer;
+
+	spiXfer.pTXData8 = p_writeBuffer;	/* Use NULL to send 0x0 */
+	spiXfer.txCount = u8_numBytesToBeWritten;
+	spiXfer.pRXData8 = p_readBuffer;
+	spiXfer.rxCount = u8_numBytesToBeRead;/* Count is in transfer size */
+	/* Setup master transfer options - 8 data bits per transfer, EOT, EOF */
+	spiXfer.options =
+			SPI_TXCTL_FLEN(8) |		/* This must be enabled as a minimum, use 16 data bits */
+		//	SPI_TXCTL_EOF |			/* Insert a delay between bytes/words as defined by frame delay time */
+			0;
+
+	/*Transfer will terminate after current buffer is sent. If terminate is not set, the buffers
+	  must be setup by the callbacks		*/
+	spiXfer.terminate =true;
+
+	/* Use SPI select 0 */
+	spiXfer.sselNum = 0;
+	Chip_SPI_FlushFifos(pSPI);
+	/* Start master transfer */
+
+	Chip_SPIM_Xfer(pSPI, &spiXfer);
+
+	while(!b_transferDone)
+	{}
+	b_transferDone = FALSE;
+}
+/************************************************************************/
+/* FUNCTION: Jedec_ID_Read						                        */
+/*									                                    */
+/* This function reads the manufacturer's ID (BFh), memory type (25h)  */
+/* and device ID (41h).  It will use 9Fh as the JEDEC ID command.    	*/
+/*                                                                      */
+/*  Returns:				 				                                */
+/*	IDs_Read:ID1(Manufacture's ID = BFh, Memory Type (25h),             */
+/*  and Device ID (80h)				                                	*/
+/*									                                    */
+/************************************************************************/
+void SST25_Jedec_ID_Read()
+{
+	flashTransferTXBuffer[0] = SST25_JEDEC_ID; /* send JEDEC ID command (9Fh) */
+	flashTransferTXBuffer[1] = 0x00;
+	flashTransferTXBuffer[2] = 0x00;
+	flashTransferTXBuffer[3] = 0x00;
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer,4 , flashTransferRXBuffer, 4);
+
+	if(flashTransferRXBuffer[1] == 0xBF)
+		PRINT_K("Manufacturer: Microchip\r\n");
+	else{
+		PRINT_K("Manufacturer: Unknown\r\n");
+		return;
+	}
+	if(flashTransferRXBuffer[2] == 0x25)
+		PRINT_K("Serial Interface: SPI\r\n");
+	else{
+		PRINT_K("Serial Interface: Unknown\r\n");
+		return;
+	}
+		if(flashTransferRXBuffer[3] == 0x8E)
+			PRINT_K("Model: SST25VF080B\r\n");
+		else{
+			PRINT_K("Model: Unknown\r\n");
+			return;
+		}
+}
+/************************************************************************/
+/* PROCEDURE: WREN						                            	*/
+/*																		*/
+/* This procedure enables the Write Enable Latch.  It can also be used 	*/
+/* to Enables Write Status Register.									*/
+/* Returns:																*/
+/*		Nothing															*/
+/************************************************************************/
+void SST25_WriteEnable()
+{
+	//PRINT_K("SST25_Write_Enable...");
+	flashTransferTXBuffer[0] = SST25_WREN; /* send WREN command (0x06) */
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 1 , flashTransferRXBuffer, 1);
+//	PRINT_K("Done...\r\n");
+
+}
+/*************************************************************************/
+void SST25_WriteDisable()
+{
+	flashTransferTXBuffer[0] = SST25_WRDI; /* send WREN command (0x06) */
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 1 , flashTransferRXBuffer, 1);
+}
+/*************************************************************************/
+void SST25_Write(uint32_t address, uint16_t data)
+{
+	PRINT_K("In SST25_Write...");
+	flashTransferTXBuffer[0] = SST25_AAI; /* send AAI command (ADh) */
+	flashTransferTXBuffer[1] = WORD32_BYTE2(address);
+	flashTransferTXBuffer[2] = WORD32_BYTE1(address);
+	flashTransferTXBuffer[3] = WORD32_BYTE0(address);
+	flashTransferTXBuffer[4] = HIGHBYTE(data);
+	flashTransferTXBuffer[5] = LOWBYTE(data);
+
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 6, flashTransferRXBuffer, 6);
+	PRINT_K("Done...\r\n");
+}
+//****************************************************************************/
+SPI_RESULT_T SST25_Read(uint32_t address, uint16_t length, uint8_t *buffer)
+{
+	int i = 0;
+	uint8_t *tempBuffer;
+
+	tempBuffer = (uint8_t *)malloc(length + 4);
+
+	if(tempBuffer == NULL){
+			PRINT_K("Panic... Cannot allocate memory\r\n");
+			while(1);
+			return SPI_ERROR_ALLOCATING_MEMORY;
+		}
+
+	flashTransferTXBuffer[0] = SST25_READ;       /* Read byte command (03h) */
+	flashTransferTXBuffer[1] = WORD32_BYTE2(address);
+	flashTransferTXBuffer[2] = WORD32_BYTE1(address);
+	flashTransferTXBuffer[3] = WORD32_BYTE0(address);
+
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, length+ 4, tempBuffer, length+ 4);
+	memcpy(buffer, tempBuffer+4, length);
+	free(tempBuffer);
+}
+/********************************************************************/
+void SST25_ChipErase()
+{
+	PRINT_K("Chip Erasing...");
+	flashTransferTXBuffer[0] = SST25_CE;       /* Erase chip command (C7h) */
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 1, flashTransferRXBuffer, 1);
+	PRINT_K("Done");
+}
+/*******************************************************************/
+void SST25_ReadSR()
+{
+	//PRINT_K("Reading status register...");
+	flashTransferTXBuffer[0] = SST25_RDSR;
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 2, flashTransferRXBuffer, 2);
+//	PRINT_K("Done\r\n");
+}
+/*************************************************************************/
+void SST25_WriteByte(uint32_t *address, uint8_t data)
+{
+	SST25_WriteEnable();
+
+	flashTransferTXBuffer[0] = SST25_BP; /* Byte program command (0x02) */
+	flashTransferTXBuffer[1] = WORD32_BYTE2(*address);
+	flashTransferTXBuffer[2] = WORD32_BYTE1(*address);
+	flashTransferTXBuffer[3] = WORD32_BYTE0(*address);
+	flashTransferTXBuffer[4] = data;
+
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 5, flashTransferRXBuffer, 5);
+
+	Set_Timer(&SPI_PROCESS_TIMER, SPI_PROCESS_TIMEOUT);
+	while(SST25_ReadBUSY() && !mn_timer_expired(&SPI_PROCESS_TIMER));
+	(*address)++;
+}
+/************************************************************************/
+/* Function: SST25_EnableWSR							                            */
+/*									                                    */
+/* This function Enables Write Status Register.  			            */
+/* Input:								                                */
+/*		 None							                                */
+/*									                                    */
+/* Returns:								                                */
+/*		Nothing							                                */
+/************************************************************************/
+void SST25_EnableWSR()
+{
+	PRINT_K("Enabling write status register...");
+	flashTransferTXBuffer[0]= SST25_EWSR;
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 1, flashTransferRXBuffer, 1);
+	PRINT_K("Done");
+}
+/************************************************************************/
+/* Function: SST25_WriteSR						                        */
+/*								                                    	*/
+/* This function writes a byte to the Status Register.					*/
+/*																		*/
+/* Input:																*/
+/*		byte															*/
+/*																		*/
+/* Returns:																*/
+/*		Nothing															*/
+/************************************************************************/
+void SST25_WriteSR(uint8_t data)
+{
+	PRINT_K("Writing status register...");
+	flashTransferTXBuffer[0]= SST25_WRSR;		/* enable writing to the SR	 */
+	flashTransferTXBuffer[1]= data;
+	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 2, flashTransferRXBuffer, 2);
+	PRINT_K("Done");
+}
+/*************************************************************************/
+/* Function SST25_ReadBUSY
+ *
+ * Checks BUSY flag of Status Register
+ *
+ * Inputs: None
+ *
+ * Returns bool status of busy bit
+ */
+/*************************************************************************/
+ bool SST25_ReadBUSY()
+{
+	SST25_ReadSR();
+
+	if(flashTransferRXBuffer[1] & FLASH_BUSY)
+		return TRUE;
+	else
+		return FALSE;
+}
+/*************************************************************************/
+/* Function SST25_EraseSector
+*
+* Checks Erase a sector
+*
+* Inputs: Sector address to be erased
+*
+* Returns bool status of busy bit
+**************************************************************************/
+ void SST25_EraseSector(uint32_t sector_no)
+ {
+	uint32_t address = sector_no * SST25_SECTOR_SIZE;
+	uint8_t buffer[10];
+
+ 	SST25_WriteEnable();
+
+ 	PRINT_K("Erasing sector: ");
+ 	itoa(sector_no, buffer, 10);
+ 	PRINT_K(buffer);
+
+ 	flashTransferTXBuffer[0]= SST25_SE;		/* erase 4K sector command	*/
+ 	flashTransferTXBuffer[1] = WORD32_BYTE2(address);
+ 	flashTransferTXBuffer[2] = WORD32_BYTE1(address);
+ 	flashTransferTXBuffer[3] = WORD32_BYTE0(address);
+
+ 	send_spi_data(LPC_SPIFLASHPORT, flashTransferTXBuffer, 4, flashTransferRXBuffer, 4);
+
+ 	Set_Timer(&SPI_PROCESS_TIMER, SPI_PROCESS_TIMEOUT);
+ 	while(SST25_ReadBUSY() && !mn_timer_expired(&SPI_PROCESS_TIMER));
+
+ 	PRINT_K("Done");
+ }
+ /**************************************************************************/
+ SPI_RESULT_T SST25_WriteArray(uint8_t *array, uint16_t length, uint32_t u32_flashAddress)
+{
+	uint16_t i;
+	uint8_t buffer[10];
+	uint8_t *tempPtr;
+	SPI_RESULT_T result;
+	uint32_t u32_startAddress;
+
+	tempPtr = (uint8_t *)malloc(length);
+
+	if(tempPtr == NULL){
+		PRINT_K("Panic... Cannot allocate memory");
+		while(1);
+		return SPI_ERROR_ALLOCATING_MEMORY;
+	}
+    /* start writing message */
+	Print_Val("Writing from address 0x", u32_flashAddress);
+	PRINT_K("**********************************************");
+	u32_startAddress = u32_flashAddress;
+
+	for(i = 0; i< length; i++){
+		if((u32_flashAddress & SST25_FLASH_SECTOR_MASK) == 0)
+			SST25_EraseSector(u32_flashAddress/SST25_SECTOR_SIZE);
+
+		SST25_WriteByte(&u32_flashAddress, array[i]);
+		if(u32_flashAddress == SST25_FLASH_SIZE) {
+			u32_flashAddress = 0;
+		}
+	}
+	/*memcpy(buffer, array, length);
+	buffer[length] = NULL;
+	PRINT_K(buffer);*/
+	PRINT_K("**********************************************");
+	PRINT_K("Done. Verifying...");
+	/* read data and checksum bytes back */
+	SST25_Read(u32_startAddress, length, tempPtr);
+
+	if(memcmp(tempPtr, array, length) == 0){
+		result =  SPI_WRITE_SUCCESS;
+		PRINT_K("Verified");
+	}
+	else{
+		result =  SPI_ERROR_CRC;
+		PRINT_K(" Not verified");
+	}
+
+	free(tempPtr);
+
+	return result;
+}
+/****************************************************************/
+bool SST25_IsEmpty()
+{
+	uint32_t buffer, i;
+	uint8_t temp[10];
+
+	for(i = 0; i < SST25_SECTOR_COUNT; i++){
+		SST25_Read(SST25_SECTOR_SIZE * i, sizeof(uint32_t), (uint8_t *)&buffer);
+		if(buffer != 0xFFFFFFFF){
+			itoa(i, temp,10);
+			PRINT_K(temp);
+			PRINT_K(" sector read\r\n");
+			return FALSE;
+		}
+	}
+	itoa(i , temp,10);
+	PRINT_K(temp);
+	PRINT_K(" sector read\r\n");
+	return TRUE;
+}
+/*******************************************************************/
+bool UpdateFlashWritePointer()
+{
+	uint32_t u32_flashWrtPtrAddress = FLASH_WRITEPTR_ADDRESS;
+
+	SST25_EraseSector(FLASH_WRITEPTR_ADDRESS / SST25_SECTOR_SIZE);
+	Print_Val("Writing 0x",u32_nextAddrToBeWritten);
+	Print_Val(" to address 0x", u32_flashWrtPtrAddress);
+
+	SST25_WriteByte(&u32_flashWrtPtrAddress, WORD32_BYTE0(u32_nextAddrToBeWritten));
+	SST25_WriteByte(&u32_flashWrtPtrAddress, WORD32_BYTE1(u32_nextAddrToBeWritten));
+	SST25_WriteByte(&u32_flashWrtPtrAddress, WORD32_BYTE2(u32_nextAddrToBeWritten));
+	SST25_WriteByte(&u32_flashWrtPtrAddress, 0x00);
+
+	PRINT_K("...Done");
+	return true;
+
+}
+/*******************************************************************/
+bool UpdateFlashReadPointer()
+{
+	uint32_t u32_flashReadPtrAddress = FLASH_READPTR_ADDRESS;
+
+	SST25_EraseSector(FLASH_WRITEPTR_ADDRESS / SST25_SECTOR_SIZE);
+	Print_Val("\r\n Writing 0x",u32_nextRecordAddrSent);
+	Print_Val(" to address 0x", u32_flashReadPtrAddress);
+
+	SST25_WriteByte(&u32_flashReadPtrAddress, WORD32_BYTE0(u32_nextRecordAddrSent));
+	SST25_WriteByte(&u32_flashReadPtrAddress, WORD32_BYTE1(u32_nextRecordAddrSent));
+	SST25_WriteByte(&u32_flashReadPtrAddress, WORD32_BYTE2(u32_nextRecordAddrSent));
+	SST25_WriteByte(&u32_flashReadPtrAddress, 0x00);
+
+	PRINT_K("...Done");
+	return true;
+
+}
+/********************************************************************/
+uint32_t Get_FlashWriteAddress()
+{
+	uint8_t wrtAddress[4];
+
+	SST25_Read(FLASH_WRITEPTR_ADDRESS, sizeof(uint32_t), wrtAddress);
+	u32_nextAddrToBeWritten = MK_WORD32(wrtAddress[3], wrtAddress[2], wrtAddress[1], wrtAddress[0]);
+
+	if(u32_nextAddrToBeWritten == 0xFFFFFFFF)
+		u32_nextAddrToBeWritten = 0;
+
+	Print_Val("Off-line data record address 0x",u32_nextAddrToBeWritten);
+	return 0;
+}
+/**********************************************************************/
+uint32_t Get_FlashReadAddress()
+{
+	uint8_t readAddress[4];
+
+	SST25_Read(FLASH_READPTR_ADDRESS, sizeof(uint32_t), readAddress);
+	u32_nextRecordAddrSent = MK_WORD32(readAddress[3], readAddress[2], readAddress[1], readAddress[0]);
+
+	if(u32_nextRecordAddrSent == 0xFFFFFFFF)
+		u32_nextRecordAddrSent = 0;
+
+	Print_Val("Off-line data will be sent from address 0x",u32_nextRecordAddrSent);
+	return 0;
+}
+/**********************************************************************/
+void Trio_SPITask()
+{
+	bool b_connectionStatus;
+	static bool b_prevConnectionStatus;
+	uint8_t c_TMessageBuffer[MAX_T_MESSAGE_LEN];
+	uint8_t *p_msgPtr = c_TMessageBuffer;
+	uint32_t i_msgLen;
+
+	b_connectionStatus = GetServerConnectionStatus();
+
+	if(!b_connectionStatus){
+		b_prevConnectionStatus = FALSE;
+		if(mn_timer_expired(&OFFLINE_DATA_RECORD_TIMER)){
+			i_msgLen = Trio_PrepareTMessage(&p_msgPtr);
+			CacheTMessage(c_TMessageBuffer, i_msgLen);
+			Set_Timer(&OFFLINE_DATA_RECORD_TIMER, OFFLINE_DATA_RECORD_INTERVAL);
+		}
+	}
+	else{
+		/* connection established to server before cache buffer filled */
+		if(b_prevConnectionStatus == FALSE) {
+			PRINT_K("Connection established to server\r\n");
+			b_prevConnectionStatus = TRUE;
+			if(offLineDataCache_t.cachedBytes > 0)
+				Flush_OffLineDataCache();
+		}
+	}
+	if(mn_timer_expired(&OFFLINE_DATA_FLUSH_TIMER)){
+		if((offLineDataCache_t.cachedBytes > 0))
+			Flush_OffLineDataCache();
+		Set_Timer(&OFFLINE_DATA_FLUSH_TIMER, OFFLINE_DATA_FLUSH_TIMEOUT);
+	}
+
+}
+/***************************************************************************/
+void CacheTMessage(uint8_t *p_msgPtr, uint32_t i_msgLen)
+{
+	uint16_t u16_crc;
+	uint16_t u_msgStart;
+
+	/* check if we have enough space in cache buffer */
+	if(offLineDataCache_t.cachedBytes + i_msgLen + 4 < OFFLINE_DATA_CACHE_SIZE){
+		PRINT_K("Caching ");
+		p_msgPtr[i_msgLen] = 0;
+		PRINT_K(p_msgPtr);
+		PRINT_K("bytes data\r\n");
+		u_msgStart = offLineDataCache_t.cachedBytes;
+
+		/* copy data length */
+		offLineDataCache_t.cacheBuffer[offLineDataCache_t.cachedBytes++] = LOWBYTE(i_msgLen + 2);
+		offLineDataCache_t.cacheBuffer[offLineDataCache_t.cachedBytes++] = HIGHBYTE(i_msgLen + 2);
+
+		/* copy message */
+		memcpy(&offLineDataCache_t.cacheBuffer[offLineDataCache_t.cachedBytes], p_msgPtr, i_msgLen);
+
+		offLineDataCache_t.cachedBytes += i_msgLen;
+
+		u16_crc = crc16(&offLineDataCache_t.cacheBuffer[u_msgStart], i_msgLen +2);
+
+		/* copy crc bytes */
+		offLineDataCache_t.cacheBuffer[offLineDataCache_t.cachedBytes++] = LOWBYTE(u16_crc);
+		offLineDataCache_t.cacheBuffer[offLineDataCache_t.cachedBytes++] = HIGHBYTE(u16_crc);
+	}
+	else{
+		PRINT_K("Cache buffer full. Flushing cache buffer...");
+		Flush_OffLineDataCache();
+		Set_Timer(&OFFLINE_DATA_FLUSH_TIMER, OFFLINE_DATA_FLUSH_TIMEOUT);
+		PRINT_K("Done");
+	}
+
+}
+/************************************************************************************/
+int32_t ReadOffLineDataFromFlash(uint8_t *buffer)
+{
+	int32_t i;
+	int32_t u16_msgLen;
+	uint32_t u32_unSentDataSize;
+	uint16_t u16_crcRead, u16_crcCalc;
+	uint8_t  dataLengthBuffer[2];
+	uint8_t temp[16];
+
+	u32_unSentDataSize = u32_nextAddrToBeWritten - u32_nextRecordAddrSent;
+
+	if(u32_unSentDataSize > 0) {
+
+		PRINT_K("Unsent data is available");
+
+		Print_Val("Reading off-line data from 0x ",u32_nextRecordAddrSent);
+
+		SST25_Read(u32_nextRecordAddrSent, 2, dataLengthBuffer);
+
+		u16_msgLen = MK_WORD16(dataLengthBuffer[1], dataLengthBuffer[0]);
+
+		PRINT_K("Read data length:");
+		itoa(u16_msgLen, temp, 10);
+		PRINT_K(temp);
+
+		buffer[0] = dataLengthBuffer[0];
+		buffer[1] = dataLengthBuffer[1];
+
+		SST25_Read(u32_nextRecordAddrSent +2 , u16_msgLen, &buffer[2]);
+		buffer[u16_msgLen] = NULL;
+		PRINT_K("Message recorded:");
+		PRINT_K(&buffer[2]);
+
+
+		u32_nextRecordAddrSent += (u16_msgLen + 2);
+
+		if(u32_nextAddrToBeWritten <= u32_nextRecordAddrSent)
+			UpdateFlashReadPointer();
+
+		u16_crcCalc = crc16(buffer, u16_msgLen);
+		u16_crcRead = MK_WORD16(buffer[u16_msgLen +1], buffer[u16_msgLen]);
+
+		if(u16_crcRead == u16_crcCalc){
+			PRINT_K("CRC OK");
+			for(i = 0; i < u16_msgLen; i++)
+				buffer[i] = buffer[i + 2];
+			return u16_msgLen;
+		}
+		/* incorrect CRC */
+		else
+			return -1;
+	}
+	/* off-line data is not available */
+	else
+		return 0;
+
+
+}
+/************************************************************************************/
+void Init_SPI_Cache()
+{
+	offLineDataCache_t.cachedBytes = 0;
+}
+/*************************************************************************************/
+void Flush_OffLineDataCache()
+{
+	uint8_t temp[4];
+
+	PRINT_K("Writing ");
+	itoa(offLineDataCache_t.cachedBytes, temp,10);
+	PRINT_K(temp);
+	PRINT_K("bytes cached data to flash\r\n");
+
+	SST25_WriteArray(offLineDataCache_t.cacheBuffer, offLineDataCache_t.cachedBytes, u32_nextAddrToBeWritten);
+	UpdateFlashWritePointer();
+	Init_SPI_Cache();
+}
+void WriteInitialValuesToFlash()
+{
+	uint32_t u32_flashAddress = FLASH_READPTR_ADDRESS;
+	int32_t i;
+
+	for(i = 0; i < 4; i++)
+		SST25_WriteByte(&u32_flashAddress, 0);
+
+	u32_flashAddress = FLASH_WRITEPTR_ADDRESS;
+
+	for(i = 0; i < 4; i++)
+		SST25_WriteByte(&u32_flashAddress, 0);
+}

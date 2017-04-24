@@ -1,0 +1,102 @@
+/*
+ * status.h
+ *
+ *  Created on: 31 Tem 2015
+ *      Author: admin
+ */
+
+#ifndef STATUS_H_
+#define STATUS_H_
+
+#include "timer.h"
+
+void Trio_ConfigureSimDetectInterrupt();
+void Trio_ConfigureIgnDetectInterrupt();
+void Trio_ConfigureRelayGPIO();
+void SetRoamingStatus(bool status);
+
+bool GetRoamingStatus();
+bool GetIgnitionStatus();
+bool Get_AlarmStatus();
+bool Get_PowerStatus();
+
+bool CheckSIMStatus();
+
+void SetBatteryLevel(uint16_t batteryLevel);
+
+typedef enum
+{
+	VEHICLE_STATUS_IDLE,
+	VEHICLE_STATUS_NOT_IDLE,
+	WAITING_VEHICLE_IDLE_TIMEOUT
+}IDLE_STATUS_T;
+typedef enum
+{
+	VEHICLE_STATUS_STOPPED,
+	VEHICLE_STATUS_NOT_STOPPED,
+	WAITING_VEHICLE_STOP_TIMEOUT
+}STOP_STATUS_T;
+
+typedef enum
+{
+	BELOW_SPEED_LIMIT,
+	ABOVE_SPEED_LIMIT,
+	EXCEEDED_SPEED_LIMIT
+}SPEED_STATUS_T;
+
+typedef struct IDLE_TIME_INFO
+{
+	TIMER_INFO_T idle_timer;
+	TIMER_INFO_T idle_time_counter;
+	IDLE_STATUS_T idle_status;
+	TIMER_TICK_T idle_time;
+}IDLE_TIME_INFO_T;
+
+typedef struct STOP_TIME_INFO
+{
+	TIMER_INFO_T stop_timer;
+	IDLE_STATUS_T stop_status;
+	TIMER_TICK_T stop_time;
+}STOP_TIME_INFO_T;
+
+typedef struct STATUS
+{
+	uint8_t ignited:1;
+	uint8_t sim_status:1;
+	uint8_t power_status:1;
+	uint8_t roaming:1;
+	uint8_t gpsdata:1;
+	uint8_t dinput1:1;
+	int batteryLevel;
+	SPEED_STATUS_T speed_status;
+	STOP_TIME_INFO_T stop_time_info;
+	IDLE_TIME_INFO_T idle_time_info;
+}STATUS_INFO_T;
+
+typedef struct EVENT_INFO
+{
+	uint32_t event_digtial_input1_low:1;
+	uint32_t event_digtial_input1_high:1;
+	uint32_t event_digtial_input2_low:1;
+	uint32_t event_digital_input2_high:1;
+	uint32_t event_speed_limit_violation:1;
+	uint32_t event_max_stop_time_exceeded:1;
+	uint32_t event_max_idle_time_exceeded:1;
+	uint32_t event_power_status_changed:1;
+	uint32_t event_cell_id_changed:1;
+	uint32_t event_ignition_status_changed:1;
+	uint32_t event_sim_card_removed:1;
+	uint32_t speedLimitViolationDuration;
+	uint32_t reserved:17;
+}EVENT_INFO_T;
+
+void Get_EventInfo(EVENT_INFO_T *);
+void Get_StatusInfo(STATUS_INFO_T *);
+void Init_StatusInfo();
+
+#define   SIM_DETECT_PIN        17    /* PIO_17 as SIM detection pin */
+#define   IGN_DETECT_PIN        14    /* PIO_14 as Ignition detection pin */
+#define   POWER_DETECT_PIN      22    /* External power detection pin */
+STATUS_INFO_T * GetPtrToStatusData();
+
+#endif /* STATUS_H_ */

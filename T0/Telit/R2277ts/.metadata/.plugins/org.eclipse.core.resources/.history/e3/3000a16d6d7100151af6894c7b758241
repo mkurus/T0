@@ -1,0 +1,447 @@
+/*
+ * status.c
+ *
+ *  Created on: 3 Ağu 2015
+ *      Author: admin
+ */
+
+#include "board.h"
+#include "timer.h"
+#include "utils.h"
+#include "status.h"
+#include "gps.h"
+#include "messages.h"
+#include <stdlib.h>
+#include <string.h>
+
+typedef enum POWER_STATE_T
+{
+	POWER_REMOVED_STATE,
+	POWER_APPLIED_STATE
+}POWER_STATE;
+
+typedef enum SIM_STATE_T
+{
+	SIM_REMOVED_STATE,
+	SIM_INSERTED_STATE
+}SIM_STATE;
+
+typedef enum IGN_STATE_T
+{
+	NOT_IGNITED_STATE,
+	IGNITED_STATE
+}IGN_STATE;
+
+typedef struct SIM_STATUS_INFO_T
+{
+	bool b_simInserted;
+	SIM_STATE b_simState;
+	TIMER_INFO_T SIM_DEBOUNCE_TIMER;
+}SIM_STATUS_INFO;
+
+typedef struct IGNITION_STATUS_INFO_T
+{
+	bool b_ignited;
+	IGN_STATE b_ignState;
+	TIMER_INFO_T IGN_DEBOUNCE_TIMER;
+}IGNITION_STATUS_INFO;
+
+typedef struct POWER_STATUS_INFO_T
+{
+	bool b_powered;
+	POWER_STATE b_powerState;
+	TIMER_INFO_T POWER_DEBOUNCE_TIMER;
+}POWER_STATUS_INFO;
+
+SIM_STATUS_INFO sim_status_info;
+IGNITION_STATUS_INFO ignition_status_info;
+POWER_STATUS_INFO power_status_info;
+
+static STATUS_INFO_T status_info;
+static TIMER_INFO_T DUMMY_TIMER;
+static EVENT_INFO_T event_info;
+
+bool CheckSIMStatus();
+bool CheckIgnStatus();
+
+#define SIM_DEBOUNCE_TIME       10
+#define IGN_DEBOUNCE_TIME       10
+#define POWER_DEBOUNCE_TIME   10
+
+static void SetSimStatus(bool status);
+static void SetIgnitionStatus(bool status);
+static void SetPowerStatus(bool status);
+
+static void ProcessVehicleIdleStatus();
+static void ProcessSpeedLimitStatus();
+static void ProcessStopTimeLimitStatus();
+
+
+uint32_t u32_maxSpeedLimit = 100;
+uint32_t u32_idleTimeLimit = 5000;
+uint32_t u32_stopTimeLimit = 1000;
+
+#define SYSTICKS_IN_SECS    100
+/***********************************************************************************/
+Trio_StatusTask()
+{
+	CheckSIMStatus();
+	CheckIgnStatus();
+	ProcessVehicleIdleStatus();
+	ProcessSpeedLimitStatus();
+	ProcessStopTimeLimitStatus();
+	ProcessExtPowerStatus();
+}
+/**********************************************************************************/
+/**
+ *Handle interrupt from PININT channel 0 (sim detection interrupt)
+ */
+void PININT0_IRQHandler(void)
+{
+	uint32_t u32_riseStates;
+
+	u32_riseStates = Chip_PININT_GetRiseStates(LPC_PININT);
+
+	if(u32_riseStates & PININTCH0){
+		Chip_PININT_ClearRiseStates(LPC_PININT, PININTCH0);
+		sim_status_info.b_simInserted  = FALSE;
+	}
+	else{
+		Chip_PININT_ClearFallStates(LPC_PININT, PININTCH0);
+		sim_status_info.b_simInserted = TRUE;
+	}
+
+	Set_Timer(&(sim_status_info.SIM_DEBOUNCE_TIMER), SIM_DEBOUNCE_TIME);
+	Chip_PININT_ClearIntStatus(LPC_PININT, PININTCH0);
+}
+
+/**********************************************************************************/
+void Trio_ConfigureSimDetectInterrupt()
+{
+	/* Initialize pin interrupt */
+	Chip_SYSCTL_SetPinInterrupt(0, SIM_DETECT_PIN);							/* Set pin interrupt 0 to SIMDETECT pin*/
+	Chip_PININT_Init(LPC_PININT);											/* initialize pin interrupt module */
+	Chip_PININT_SetPinModeEdge(LPC_PININT, PININTCH0);				        /* set pin interrupt channel 0 to be edge sensitive */
+	Chip_PININT_EnableIntHigh(LPC_PININT, PININTCH0);						/* interrupt on rising edge */
+	Chip_PININT_EnableIntLow(LPC_PININT, PININTCH0);	                    /* interrupt on low level */
+	NVIC_EnableIRQ(PININT0_IRQn);											/* enable pin interrupt 0 */
+}
+
+/***********************************************************************************/
+bool CheckSIMStatus()
+{
+	switch(sim_status_info.b_simState)
+	{
+		case SIM_REMOVED_STATE:
+		if(sim_status_info.b_simInserted){
+			if(mn_timer_expired(&(sim_status_info.SIM_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@.............SIM_INSERTED...........@@@@@\r\n");
+				sim_status_info.b_simState = SIM_INSERTED_STATE;
+			}
+		}
+		break;
+
+		case SIM_INSERTED_STATE:
+		if(!sim_status_info.b_simInserted){
+			if(mn_timer_expired(&(sim_status_info.SIM_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@...............SIM_REMOVED...........@@@@@\r\n");
+				sim_status_info.b_simState = SIM_REMOVED_STATE;
+			}
+		}
+		break;
+	}
+}
+/************************************************************/
+void PININT1_IRQHandler(void)
+{
+	uint32_t u32_riseStates;
+
+	u32_riseStates = Chip_PININT_GetRiseStates(LPC_PININT);
+	if(u32_riseStates & PININTCH1){
+		Chip_PININT_ClearRiseStates(LPC_PININT, PININTCH1);
+		ignition_status_info.b_ignited = NOT_IGNITED;
+	}
+	else{
+		Chip_PININT_ClearFallStates(LPC_PININT, PININTCH1);
+		ignition_status_info.b_ignited = IGNITED;
+	}
+	Set_Timer(&(ignition_status_info.IGN_DEBOUNCE_TIMER), IGN_DEBOUNCE_TIME);
+	Chip_PININT_ClearIntStatus(LPC_PININT, PININTCH1);
+}
+/****************************************************************/
+void Trio_ConfigureIgnDetectInterrupt()
+{
+	/* Initialize pin interrupt */
+	Chip_SYSCTL_SetPinInterrupt(1, IGN_DETECT_PIN);							/* Set pin interrupt 0 to IGNDETECT pin*/
+	Chip_PININT_Init(LPC_PININT);											/* initialize pin interrupt module */
+	Chip_PININT_SetPinModeLevel(LPC_PININT, PININTCH1);				        /* set pin interrupt channel 0 to be edge sensitive */
+	Chip_PININT_EnableIntHigh(LPC_PININT, PININTCH1);						/* interrupt on high level */
+	Chip_PININT_EnableIntLow(LPC_PININT, PININTCH1);	                    /* interrupt on low level */
+	NVIC_EnableIRQ(PININT1_IRQn);											/* enable pin interrupt 0 */
+}
+/****************************************************************/
+bool CheckIgnStatus()
+{
+	switch(ignition_status_info.b_ignState)
+	{
+		case NOT_IGNITED_STATE:
+		if(ignition_status_info.b_ignited){
+			if(mn_timer_expired(&(ignition_status_info.IGN_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@......IGNITED..........@@@@@\r\n");
+				ignition_status_info.b_ignState = IGNITED_STATE;
+			}
+		}
+		break;
+
+		case IGNITED_STATE:
+		if(!(ignition_status_info.b_ignited)){
+			if(mn_timer_expired(&(ignition_status_info.IGN_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@..........NOT_IGNITED.......@@@@@\r\n");
+				ignition_status_info.b_ignState = NOT_IGNITED_STATE;
+			}
+		}
+		break;
+	}
+}
+/***********************************************************************/
+void SetRoamingStatus(bool status)
+{
+	//status_info.roaming = status;
+}
+/***********************************************************************/
+bool GetRoamingStatus()
+{
+	return status_info.roaming;
+}
+/***********************************************************************/
+void SetSimStatus(bool status)
+{
+	status_info.sim_status = status;
+}
+/***********************************************************************/
+bool Get_AlarmStatus()
+{
+	uint32_t *u32_alarmStatus;
+
+	u32_alarmStatus = (uint32_t *)&event_info;
+
+	if(*u32_alarmStatus != 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+/***********************************************************************/
+void SetIgnitionStatus(bool status)
+{
+	status_info.ignited = status;
+}
+/***********************************************************************/
+bool GetIgnitionStatus()
+{
+	return status_info.ignited;
+}
+/************************************************************************/
+void ProcessVehicleIdleStatus()
+{
+	RMC_MESSAGE_T rmc_info;
+	uint32_t u32_speedKm;
+
+	Get_RMCInfo(&rmc_info);
+	u32_speedKm = rmc_info.speed*1812/1000;
+
+	if(status_info.ignited){
+
+		switch(status_info.idle_time_info.idle_status){
+
+			case WAITING_VEHICLE_IDLE_TIMEOUT:
+			if(u32_speedKm > 0)
+				status_info.idle_time_info.idle_status = VEHICLE_STATUS_NOT_IDLE;
+			else if(mn_timer_expired(&(status_info.idle_time_info.idle_timer))){
+				event_info.event_max_idle_time_exceeded = SET;
+				status_info.idle_time_info.idle_status = VEHICLE_STATUS_IDLE;
+			}
+			if(mn_timer_expired(&(status_info.idle_time_info.idle_time_counter))){
+				status_info.idle_time_info.idle_time += 1;
+				Set_Timer(&(status_info.idle_time_info.idle_time_counter), SYSTICKS_IN_SECS);
+			}
+			break;
+
+			case VEHICLE_STATUS_IDLE:
+			if(u32_speedKm > 0)
+				status_info.idle_time_info.idle_status = VEHICLE_STATUS_NOT_IDLE;
+			if(mn_timer_expired(&(status_info.idle_time_info.idle_time_counter))){
+				status_info.idle_time_info.idle_time += 1;
+				Set_Timer(&(status_info.idle_time_info.idle_time_counter), SYSTICKS_IN_SECS);
+			}
+			break;
+
+			case VEHICLE_STATUS_NOT_IDLE:
+			if(u32_speedKm == 0){
+				Set_Timer(&status_info.idle_time_info.idle_timer, u32_idleTimeLimit);
+				Set_Timer(&status_info.idle_time_info.idle_time_counter, SYSTICKS_IN_SECS);
+				status_info.idle_time_info.idle_status = WAITING_VEHICLE_IDLE_TIMEOUT;
+			}
+			break;
+		}
+	}
+}
+/*************************************************************************/
+void ProcessSpeedLimitStatus()
+{
+	RMC_MESSAGE_T rmc_info;
+	uint32_t u32_speedKm;
+
+	Get_RMCInfo(&rmc_info);
+
+	u32_speedKm = rmc_info.speed*1812/1000;
+
+	switch(status_info.speed_status){
+
+		case EXCEEDED_SPEED_LIMIT:
+		PRINT_K("event_speed_limit_violation set edildi");
+		event_info.event_speed_limit_violation = SET;
+		status_info.speed_status = ABOVE_SPEED_LIMIT;
+		Set_Timer(&DUMMY_TIMER, 100);
+		break;
+
+		case ABOVE_SPEED_LIMIT:
+		if(u32_speedKm  < u32_maxSpeedLimit){
+			PRINT_K("Hiz limitinin altina inildi\r\n");
+			status_info.speed_status = BELOW_SPEED_LIMIT;
+		}
+		else if(mn_timer_expired(&DUMMY_TIMER))
+		{
+			if(event_info.event_speed_limit_violation){
+				PRINT_K("\r\nevent_info.event_speed_limit_violation = SET\r\n");
+			}
+			Set_Timer(&DUMMY_TIMER, 100);
+		}
+		break;
+
+		case BELOW_SPEED_LIMIT:
+		if(u32_speedKm > u32_maxSpeedLimit){
+			PRINT_K("Hiz limitinin ustune cikildi\r\n");
+			status_info.speed_status = EXCEEDED_SPEED_LIMIT;
+		}
+		break;
+	}
+}
+/************************************************************************/
+void ProcessStopTimeLimitStatus()
+{
+	switch(status_info.stop_time_info.stop_status){
+		case  VEHICLE_STATUS_STOPPED:
+		if(status_info.ignited)
+			status_info.stop_time_info.stop_status = VEHICLE_STATUS_NOT_STOPPED;
+		break;
+
+		case VEHICLE_STATUS_NOT_STOPPED:
+		if(!status_info.ignited){
+			status_info.stop_time_info.stop_status = WAITING_VEHICLE_STOP_TIMEOUT;
+			Set_Timer(&status_info.stop_time_info.stop_timer, u32_stopTimeLimit);
+		}
+		break;
+
+		case WAITING_VEHICLE_STOP_TIMEOUT:
+		if(status_info.ignited)
+			status_info.stop_time_info.stop_status = VEHICLE_STATUS_NOT_STOPPED;
+		else if(mn_timer_expired(&status_info.stop_time_info.stop_timer)) {
+			event_info.event_max_stop_time_exceeded = TRUE;
+			status_info.idle_time_info.idle_status = VEHICLE_STATUS_STOPPED;
+		}
+		break;
+	}
+}
+/****************************************************************/
+void Trio_ConfigureExtPowerDetectInterrupt()
+{
+	/* Initialize pin interrupt */
+	Chip_SYSCTL_SetPinInterrupt(2, POWER_DETECT_PIN);						/* Set pin interrupt 2 for ext. power detection*/
+	Chip_PININT_Init(LPC_PININT);											/* initialize pin interrupt module */
+	Chip_PININT_SetPinModeLevel(LPC_PININT, PININTCH2);				        /* set pin interrupt channel 2 to be edge sensitive */
+	Chip_PININT_EnableIntHigh(LPC_PININT, PININTCH2);						/* interrupt on high level */
+	Chip_PININT_EnableIntLow(LPC_PININT, PININTCH2);	                    /* interrupt on low level */
+	NVIC_EnableIRQ(PININT2_IRQn);											/* enable pin interrupt 2 */
+}
+/**********************************************************************************/
+/**
+ *Handle interrupt from PININT channel 2 (External Power Status interrupt)
+ */
+void PININT2_IRQHandler(void)
+{
+	uint32_t u32_riseStates;
+
+	u32_riseStates = Chip_PININT_GetRiseStates(LPC_PININT);
+
+	if(u32_riseStates & PININTCH2){
+		Chip_PININT_ClearRiseStates(LPC_PININT, PININTCH2);
+		power_status_info.b_powered  = TRUE;
+	}
+	else{
+		Chip_PININT_ClearFallStates(LPC_PININT, PININTCH2);
+		power_status_info.b_powered = FALSE;
+	}
+
+	Set_Timer(&(power_status_info.POWER_DEBOUNCE_TIMER), POWER_DEBOUNCE_TIME);
+	Chip_PININT_ClearIntStatus(LPC_PININT, PININTCH2);
+}
+
+/************************************************************************/
+void ProcessExtPowerStatus()
+{
+	switch(power_status_info.b_powerState){
+		case POWER_REMOVED_STATE:
+		if(power_status_info.b_powered){
+			if(mn_timer_expired(&(power_status_info.POWER_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@.............POWER_APPLIED...........@@@@@\r\n");
+				power_status_info.b_powerState = POWER_APPLIED_STATE;
+			}
+		}
+		break;
+
+		case POWER_APPLIED_STATE:
+		if(!(power_status_info.b_powered)){
+			if(mn_timer_expired(&(power_status_info.POWER_DEBOUNCE_TIMER))){
+				PRINT_K("@@@@...............POWER_REMOVED...........@@@@@\r\n");
+				power_status_info.b_powerState = POWER_REMOVED_STATE;
+			}
+		}
+		break;
+	}
+}
+/***********************************************************************/
+void SetPowerStatus(bool status)
+{
+	status_info.power_status = status;
+}
+/************************************************************************/
+void SetBatteryLevel(uint16_t batteryLevel)
+{
+	char buffer[10];
+	status_info.batteryLevel = batteryLevel * 10;
+	PRINT_K("Battery Voltage:");
+	itoa(status_info.batteryLevel, buffer, 10);
+	PRINT_K(buffer);
+}
+/************************************************************************/
+void Get_EventInfo(EVENT_INFO_T *t_event)
+{
+	*t_event = event_info;
+}
+/*************************************************************************/
+void Get_StatusInfo(STATUS_INFO_T *t_status)
+{
+	*t_status = status_info;
+}
+/*************************************************************************/
+void Init_StatusInfo()
+{
+	//status_info.speed_status = BELOW_SPEED_LIMIT;
+//	status_info.power_status = POWER_REMOVED;
+	status_info.idle_time_info.idle_status = VEHICLE_STATUS_IDLE;
+	status_info.idle_time_info.idle_time = 0;
+	status_info.stop_time_info.stop_status = VEHICLE_STATUS_STOPPED;
+	status_info.stop_time_info.stop_time = 0;
+	memset(&event_info, 0, sizeof(event_info));
+
+}

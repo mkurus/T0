@@ -1,0 +1,332 @@
+/*
+ * xmodem1k.c
+ *
+ *  Created on: 18 Ara 2015
+ *      Author: admin
+ */
+/*****************************************************************************
+ * $Id$
+ *
+ * Project: 	NXP LPC1100 Secondary Bootloader Example
+ *
+ * Description: Implements an Xmodem1K client (receiver).
+ *
+ * Copyright(C) 2010, NXP Semiconductor
+ * All rights reserved.
+ *
+ *****************************************************************************
+ * Software that is described herein is for illustrative purposes only
+ * which provides customers with programming information regarding the
+ * products. This software is supplied "AS IS" without any warranties.
+ * NXP Semiconductors assumes no responsibility or liability for the
+ * use of the software, conveys no license or title under any patent,
+ * copyright, or mask work right to the product. NXP Semiconductors
+ * reserves the right to make changes in the software without
+ * notification. NXP Semiconductors also make no representation or
+ * warranty that such application will be suitable for the specified
+ * use without further testing or modification.
+ *****************************************************************************/
+#include "chip.h"
+#include "timer.h"
+#include "settings.h"
+#include "gsm.h"
+#include "spi.h"
+#include "utils.h"
+#include "sst25.h"
+#include "xmodem1k.h"
+#include "bootloader.h"
+#include "at_commands.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Protocol control ASCII characters */
+#define SOH							0x01
+#define STX							0x02
+//#define EOT							0x03
+#define EOT							0x04
+#define ACK							0x06
+#define NAK							0x15
+#define POLL						0x43
+
+/* Internal state machine */
+typedef enum {
+	STATE_IDLE,
+	STATE_CONNECTING,
+	STATE_RECEIVING
+}UPDATE_STATE;
+
+/* Define the rate at which the server will be polled when starting a transfer */
+#define POLL_PERIOD  			   (100 *SECOND) // was 20000
+
+/* Define packet timeout period (maximum time to receive a packet) */
+#define PACKET_TIMEOUT_PERIOD	   (20 * SECOND) // was 20000
+
+
+/* Size of packet payloads and header */
+#define LONG_PACKET_PAYLOAD_LEN		1024
+//#define LONG_PACKET_PAYLOAD_LEN		64
+#define SHORT_PACKET_PAYLOAD_LEN	1024
+#define PACKET_HEADER_LEN			3
+;
+#define RECEIVE_BUFF_LEN			1050
+
+/* bootrom check this constant to decide validity of image */
+#define IMAGE_CONSTANT 				0xAA55BC47
+
+/* Buffer in which received data is stored, must be aligned on a word boundary
+ as point to this array is going to be passed to IAP routines (which require
+ word alignment). */
+
+
+/* Local functions */
+
+uint8_t XModemReadByte(char *pByte);
+void WriteImageSignature(uint32_t u32_imageSize, uint32_t u32_imageCRC);
+static uint16_t u16_dataLen                  __attribute__ ((section (".common2")));
+static uint16_t u16_dataIndex                __attribute__ ((section (".common2")));
+uint8_t receiveBuf[RECEIVE_BUFF_LEN]         __attribute__ ((section (".common2")));
+uint8_t au8RxBuffer[LONG_PACKET_PAYLOAD_LEN] __attribute__ ((section (".common2")));
+/***********************************************************************/
+void Init_UpdateInfo()
+{
+	u16_dataLen  = 0;
+	u16_dataIndex = 0;
+}
+uint8_t XModemReadByte(char* pByte)
+{
+//	Get_CurrentStackPointer();
+	if (u16_dataIndex >= u16_dataLen) {
+		u16_dataLen = Get_GsmTcpBuffer(receiveBuf, RECEIVE_BUFF_LEN, NULL);
+		if(u16_dataLen)
+			PRINT_K("Page received\r\n");
+		u16_dataIndex = 0;
+		return 0;
+	}
+	(*pByte) = receiveBuf[u16_dataIndex++];
+	return (1);
+}
+
+/*******************************************************************************************/
+int XModem1K_Client(char *imei)
+{
+
+	TIMER_INFO_T UPDATE_COMM_TIMER;
+	UPDATE_STATE update_state = STATE_IDLE;
+	uint32_t u32_byteCount = 0;
+	//uint16_t u16_pktLen;
+	uint16_t u16_crc, u16_calculatedCRC;
+	uint16_t u16_frameNum = 0;
+	uint16_t u16_trials;
+
+	char buffer[32];
+	bool u32_inProgress = 1;
+	//PRINT_K((char *)"Start downloading\r\n");
+	//memset(au8RxBuffer, 0,LONG_PACKET_PAYLOAD_LEN);
+
+	while (u32_inProgress) {
+
+     Chip_WWDT_Feed(LPC_WWDT);
+
+	/* Prepare UART for RX/TX */
+
+		switch (update_state) {
+
+		case STATE_IDLE:
+		/* Send command to server indicating we are ready to receive */
+		buffer[0] = POLL;
+		strcpy(&buffer[1], imei);
+		Send_MessageToServer(buffer, strlen(buffer), NULL);
+		/* Start timeout to send another poll if we do not get a response */
+		Set_Timer(&UPDATE_COMM_TIMER, POLL_PERIOD);
+		u16_trials = MAX_PACKET_TIMEOUTS;
+	//	update_state = STATE_CONNECTING;
+		update_state = STATE_RECEIVING;
+		break;
+
+	//	case STATE_CONNECTING: {
+	//	char u8_data;
+	//	PRINT_K("Connecting\r\n");
+		/* Check if a character has been received on the UART */
+	//	if(XModemReadByte(&u8_data)){
+			/* Expecting a start of packet character */
+		//	if(u8_data == SOH){
+				/* SOH indicates short pay load packet is being transmitted */
+			//	u32_byteCount = 1;
+				/* Start packet timeout */
+			//	Set_Timer(&UPDATE_COMM_TIMER, PACKET_TIMEOUT_PERIOD);
+				/* Wait for a further characters */
+			//	update_state = STATE_RECEIVING;
+		//	}
+		//}
+		//else { /* No data received yet, check poll command timeout */
+		//	if(mn_timer_expired(&UPDATE_COMM_TIMER)){
+			/* Timeout expired following poll command transmission so try again.. */
+			/*	char u8_cmd = NAK;
+				if (u16_trials-- > 0) {
+					PRINT_K("Timeout, repeat request\r\n");
+					Send_MessageToServer(&u8_cmd, 1, NULL);
+				}
+				else
+					return ( DOWNLOAD_ERR_TIMEOUT );
+
+				Set_Timer(&UPDATE_COMM_TIMER, POLL_PERIOD);
+			}
+		}
+		}
+		break;*/
+
+		case STATE_RECEIVING: {
+			char u8_data;
+			/* Check if a character has been received on the UART */
+			if(XModemReadByte(&u8_data)){
+				/* Position of received byte determines action we take */
+				if(u32_byteCount == 0){
+					/* Expecting a start of packet character */
+					if(u8_data == SOH) {
+						/* SOH indicates short pay load packet is being transmitted */
+						u32_byteCount = 1;
+						/* Start packet timeout */
+						Set_Timer(&UPDATE_COMM_TIMER, PACKET_TIMEOUT_PERIOD);
+					} else if(u8_data == EOT) {
+
+						/* Server indicating transmission is complete */
+						Gsm_CloseSocket();
+						u32_inProgress = 0;
+
+						uint32_t u32_imageSize;
+						uint32_t u32_imageCRC;
+						char imageArray[8];
+						uint8_t i;
+
+						for(i =0; i < sizeof(imageArray); i++)
+							XModemReadByte(&imageArray[i]);
+
+						u32_imageSize = MK_WORD32(imageArray[0], imageArray[1], imageArray[2], imageArray[3]);
+						u32_imageCRC =  MK_WORD32(imageArray[4], imageArray[5], imageArray[6], imageArray[7]);
+
+						PRINT_K("Writing signature...");
+						WriteImageSignature(u32_imageSize, u32_imageCRC);
+						return 0;
+
+					}
+					else return 0;
+				}
+				else if(u32_byteCount == 1) {
+				/* Byte 1 is the packet number - should be different from last one we received */
+					u16_frameNum = u8_data;
+					u32_byteCount++;
+				}
+			    else if(u32_byteCount == 2) {
+				/* Byte 2 is the packet number inverted - check for error with last byte */
+					u16_frameNum <<= 8;
+					u16_frameNum |= u8_data;
+					u32_byteCount++;
+				}
+			    else if(((u32_byteCount == (SHORT_PACKET_PAYLOAD_LEN+3)))) {
+				  /* low byte of CRC */
+					u16_crc = u8_data;
+					u32_byteCount++;
+				}
+				else if((u32_byteCount == (SHORT_PACKET_PAYLOAD_LEN+4))) {
+					/* high byte of CRC. */
+					u16_crc <<= 8;
+					u16_crc |= u8_data;
+					u16_calculatedCRC = crc16(au8RxBuffer, SHORT_PACKET_PAYLOAD_LEN);
+					/* Check the received CRC against the CRC we generate on the packet data */
+					if(u16_calculatedCRC == u16_crc){
+						char u8_cmd = ACK;
+						Send_MessageToServer(&u8_cmd, 1, NULL);
+						Chip_WWDT_Feed(LPC_WWDT);
+						// write to flash
+
+						PRINT_K("Writing frame...");
+						PRINT_INT(u16_frameNum);
+						SST25_WriteArray(au8RxBuffer,
+										 SHORT_PACKET_PAYLOAD_LEN,
+										 FIRMWARE_ADDRESS + ((u16_frameNum - 1) * SHORT_PACKET_PAYLOAD_LEN));
+						PRINT_K(" Done\r\n");
+						//PRINT_K("\r\nSending ACK\r\n");
+					//	Delay(10, NULL);
+
+					}
+					else{ /* Error CRC calculated does not match that received */
+					/* Indicate problem to server - should result in packet being resent.. */
+						if (u16_trials-- > 0) {
+							char u8_cmd = NAK;
+							PRINT_K("CRC error NAKing\r\n");
+							Send_MessageToServer(&u8_cmd, 1, NULL);
+							Delay(100, NULL); //was 100.
+						//	memset(au8RxBuffer,0,sizeof(au8RxBuffer));
+						}
+						else
+							return ( DOWNLOAD_ERR_TIMEOUT );
+					}
+					u32_byteCount = 0;
+				}
+				else {
+					/* Must be pay load data so store */
+					au8RxBuffer[u32_byteCount - PACKET_HEADER_LEN] = u8_data;
+					u32_byteCount++;
+				}
+			}
+			else{
+				if(mn_timer_expired(&UPDATE_COMM_TIMER)) {
+					Chip_WWDT_Feed(LPC_WWDT);
+					/* Timeout expired no data received stop upgrade  */
+					if (u16_trials-- > 0){
+						PRINT_K("Receive timeout\r\n");
+						char u8_cmd = NAK;
+						Send_MessageToServer(&u8_cmd, 1, NULL);
+						u32_byteCount = 0;
+						Set_Timer(&UPDATE_COMM_TIMER, PACKET_TIMEOUT_PERIOD);
+					} else
+						return ( DOWNLOAD_ERR_TIMEOUT );
+				}
+			}
+		}
+		break;
+
+		default:
+		break;
+		}
+	}
+	return ( DOWNLOAD_ERR_TIMEOUT );
+}
+
+/*****************************************************************************
+ **                            End Of File
+ *****************************************************************************/
+
+/*****************************************************************************
+** Function name:	WriteImageSignature
+**
+** Description:		The function writes the image signature of and upgrade
+** 					image to the end of the image. Image validation procedure
+** 					checks the image validity using this information if the
+** 					CRC does not match. Upgrade is cancelled and primary image
+** 					is executed.
+**
+** Parameters:		address   address to write size and CRC
+** 					size      size in bytes of the image4
+** 					crc       16 bit CRC of the image
+**
+** Returned value:	none
+**
+******************************************************************************/
+void WriteImageSignature( uint32_t u32_imageSize, uint32_t u32_imageCRC)
+{
+
+	SST25_WriteArray((char *)&u32_imageSize,
+					  sizeof(u32_imageSize),
+					  FIRMWARE_MAGICWORD_ADDRESS);
+
+	SST25_WriteArray((char *)&u32_imageCRC,
+					  sizeof(u32_imageCRC),
+					  FIRMWARE_MAGICWORD_ADDRESS + 4);
+
+}
+
+
+

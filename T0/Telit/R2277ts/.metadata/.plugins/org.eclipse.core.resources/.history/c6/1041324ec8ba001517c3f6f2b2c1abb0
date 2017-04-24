@@ -1,0 +1,62 @@
+static const char Command_AT[]         = "AT\r";
+static const char Command_RESET[]      = "AT+CFUN=1,1\r";                        /* soft reset */
+//static const char Command_ATE0[]  	   = "ATE0;+CMEE=1;+CREG=0;+CGREG=0;+CIND=0,0,0,0,0,0,0,0,0;+CNMI=2,1,0,0,0;+CMGF=1\r";
+static const char Command_ATE0[]  	   = "ATE0;+CMEE=1;+CNMI=2,1,0,0,0;+CMGF=1\r";
+
+static const char Command_CMER[] 	   = "AT+CMER=2,0,0,2,0\r";                  /* enable unsolicited message codes*/
+static const char Command_CREG[]       = "AT+CREG?\r";
+
+static const char Command_CGSN[]       = "AT+CGSN\r";                          				  /* Read IMEI*/
+static const char Command_CBC[]        = "AT#CBC\r";                            			  /* Read battery voltage*/
+static const char Command_CIMI[] 	   = "AT+CIMI\r";                            		    	/* Read IMSI*/
+static const char Command_CMGR[] 	   = "AT+CMGR=1;+CSQ;+CREG?;#CBC;+CMGD=1,4;#SI=1;#SS=1\r";          /* Read SMS and rssi value*/
+static const char Command_CMGL[] 	   = "AT+CMGL=4\r";                          /* Read SMS*/
+static const char Command_CPIN[]       = "AT+CPIN?\r";                           /* get pin status*/
+static const char Command_CGDCONT[]    = "AT+CGDCONT=1,\"IP\",\"";
+static const char Command_SGACT[]      = "AT#SGACT=1,1,\"";
+static const char Command_SCFG[]       = "AT#SCFG=1,1,300,480,100,0\r";
+static const char Command_SCFGEXT[]    = "AT#SCFGEXT=1,0,0,0,0,0\r";         	 /* socket configuration */
+static const char Command_SSENDEXT[]   = "AT#SSENDEXT=1,";                  	 /* send data */
+static const char Command_SI[]    	   = "AT#SI=1\r";
+static const char Command_ATSH[]       = "AT#SH=1\r";                      		 /* close socket connection*/
+//static const char Command_SD[]         = "AT#SD=1,0,10510,\"modules.telit.com\",0,0,1";  /* connect to telit echo server*/
+//static const char Command_SD[]         = "AT#SD=1,0,6081,\"178.63.30.81\",0,0,1\r";  /* connect to trio server */
+//static const char Command_SD[]         = "AT#SD=1,0,1555,\"213.14.184.87\",0,0,1\r";  /* connect to my computer */
+static const char Command_SD[]         ="AT#SD=1,0,";
+static const char Command_SRECV[]      ="AT#SRECV=1,256\r";
+
+static const char p_strOK[]      = "OK";
+#define CHAR_CR   '\r'
+#define CHAR_LF   '\n'
+
+
+typedef enum
+{
+	AT_RESPONSE_NULL,
+	AT_RESPONSE_OK,
+	AT_RESPONSE_CMGR,
+	AT_RESPONSE_GSM_REG_OK,
+	AT_RESPONSE_GSM_REG_FAILED,
+	AT_SEND_ASYNCHRONOUS_T_MESSAGE,
+	AT_SEND_STATUS_MESSAGE,
+	AT_SEND_SETTINGS_ECHO_MESSAGE,
+	AT_CONNECT_TO_UPDATE_SERVER,
+	AT_RESPONSE_PIN_READY,
+	AT_RESPONSE_PIN_ERROR,
+	AT_SEND_DATA_PROMPT,
+	AT_SMS_RECEIVED,
+	AT_DATA_RECEIVED,
+	AT_SERVER_DISCONNECTED,
+	AT_RESPONSE_SI,
+	AT_IMSI_CODE,
+    AT_CIEV_MESSAGE,
+	AT_GPRS_ATTACHED,
+	AT_GPRS_DETACHED,
+	AT_SOCKET_CLOSED,
+	AT_RESPONSE_ERROR,
+	AT_CONTEXT_ACTIVATED,
+	AT_BATTERY_LEVEL,
+	AT_CME_ERROR_14,
+	AT_CME_ERROR_555,
+	AT_CME_ERROR_559,
+}AT_RESPONSE_CODE;

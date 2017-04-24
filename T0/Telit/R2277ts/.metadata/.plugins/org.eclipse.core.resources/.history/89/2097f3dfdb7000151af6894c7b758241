@@ -1,0 +1,48 @@
+
+#define  SST25_SECTOR_SIZE                     4096
+
+#define  FLASH_SETTINGS_ADDRESS                (251 * SST25_SECTOR_SIZE)
+
+typedef enum
+{
+	SPI_WRITE_SUCCESS,
+	SPI_ERROR_ALLOCATING_MEMORY,
+	SPI_ERROR_CRC
+}SPI_RESULT_T;
+
+typedef struct
+{
+	uint32_t lastWrittenAddr;
+	uint32_t lastReadAddr;
+}FLASH_T;
+
+void SST25_Jedec_ID_Read();
+void SST25_WriteEnable();
+void SST25_ReadSR();
+void SST25_EnableWSR();
+void SST25_WriteSR(uint8_t);
+
+void send_spi_data( LPC_SPI_T *pSPI,
+					char *p_writeBuffer,
+				    uint16_t u8_numBytesToBeWritten,
+				    char *p_readBuffer,
+				    uint16_t u8_numBytesToBeRead );
+
+void SST25_Write(uint32_t  address, uint16_t data);
+
+SPI_RESULT_T SST25_Read(uint32_t address, uint16_t data, char *buffer);
+SPI_RESULT_T MMA7455_Read(uint32_t address, uint16_t length, char *buffer);
+
+SPI_RESULT_T SST25_WriteArray(char *array, uint16_t length, uint32_t flashAddress);
+
+void SST25_WriteByte(uint32_t *, uint8_t);
+bool SST25_ReadBUSY();
+void SST25_EraseSector(uint32_t sector_no);
+void SST25_ChipErase();
+bool SST25_IsEmpty();
+uint32_t GetFlashReadPointer();
+uint32_t Get_FlashWriteAddress();
+int32_t  ReadOffLineDataFromFlash(char *buffer);
+uint32_t Get_FlashWriteAddress();
+uint32_t Get_FlashReadAddress();
+

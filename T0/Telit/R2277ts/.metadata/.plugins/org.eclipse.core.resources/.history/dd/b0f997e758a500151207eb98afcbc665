@@ -1,0 +1,113 @@
+/*
+===============================================================================
+ Name        : T0_Project.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#if defined (__USE_LPCOPEN)
+#if defined(NO_BOARD_LIB)
+#include "chip.h"
+#else
+#include <stddef.h>
+#include <string.h>
+#include "board.h"
+#include "timer.h"
+#include "MMA7455.h"
+#include "gsm.h"
+#include "settings.h"
+#include "status.h"
+#include "spi.h"
+#include "i2c.h"
+#include "utils.h"
+#include "settings.h"
+#endif
+#endif
+
+#include <cr_section_macros.h>
+void Init_UART_PinMux();
+void EnableBODReset();
+// TODO: insert other definitions and declarations here
+
+extern void _vStackTop(void);
+int main(void) {
+#if defined (__USE_LPCOPEN)
+#if !defined(NO_BOARD_LIB)
+
+    	SystemCoreClockUpdate();
+    	SysTick_Config(SystemCoreClock / TICKRATE_HZ1);
+
+    	Init_UART_PinMux();
+    	Init_GSM_UART_PinMux();
+    	Init_GPS_UART_Pinmux();
+    	Init_DEBUG_USART();
+    	Trio_Init_GSM_UART();
+    	Trio_Init_GPS_UART();
+
+    	Trio_ConfigureSimDetectInterrupt();
+    	Trio_ConfigureIgnDetectInterrupt();
+    	Trio_ConfigureExtPowerDetectInterrupt();
+    	Init_EventInfo();
+    	Init_GsmInfo();
+    	Init_GPSInfo();
+    	Set_GsmResetPinFunction(10);
+    	Trio_ConfigureRelayGPIO();
+    	//Trio_ConfigureGPSPowerTogglePin();
+    	Board_LED_Init();
+    	EnableBODReset();
+#endif
+#endif
+
+    	Trio_SPI_Init();
+
+   // Print_Val("Initial Stack Pointer 0x",_vStackTop);
+    	Init_WDT(WATCHDOG_TIMEOUT_IN_SECS);
+    	SST25_Jedec_ID_Read();          /*  read flash ID*/
+   // MMA7455_Read(0, 2, buffer);
+    	SST25_EnableWSR();
+    	SST25_WriteSR(0x00);
+       SST25_ChipErase();
+    	if(SST25_IsEmpty()) {
+    		PRINT_K("Flash empty\r\n");
+    		WriteInitialValuesToFlash();
+    	}
+    	else
+    		PRINT_K("Flash not empty\r\n");
+    	Init_SPI_Cache();
+    	Load_UserSettings();
+    	Load_KmCounter();
+    	Init_StatusInfo();
+
+    	ExecuteMainLoop();   /* never returns*/
+
+    	NVIC_SystemReset();
+}
+/************************************************************************/
+ void Init_UART_PinMux(void)
+{
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+    Chip_Clock_SetUARTClockDiv(1);
+
+	//Chip_SWM_DisableFixedPin(SWM_FIXED_ACMP_I1); //PIO0_0
+	//Chip_SWM_DisableFixedPin(SWM_FIXED_SWCLK);
+
+	Chip_SWM_MovablePinAssign(SWM_U0_TXD_O, 4);
+	Chip_SWM_MovablePinAssign(SWM_U0_RXD_I, 0);
+
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+ /*************************************************************************/
+ void Trio_ConfigureRelayGPIO()
+ {
+	 Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, 19);
+//	 Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 19, false);
+ }
+ /*************************************************************************/
+ void EnableBODReset()
+ {
+	 Chip_SYSCTL_SetBODLevels(SYSCTL_BODRSTLVL_2, SYSCTL_BODINTVAL_LVL0);
+	 Chip_SYSCTL_EnableBODReset();
+ }

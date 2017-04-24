@@ -1,0 +1,751 @@
+#include "board.h"
+#include "chip.h"
+#include "gps.h"
+#include "status.h"
+#include "utils.h"
+#include "timer.h"
+#include "messages.h"
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <math.h>
+
+#define GPS_UART_SRB_SIZE 32 	/* Send */
+#define GPS_UART_RRB_SIZE 512	/* Receive */
+
+#define GPS_MESSAGE_BUFFER_SIZE   192
+
+#define GPS_UART         	 	  LPC_USART2
+#define GPS_BAUD_RATE   		  9600 //115200
+#define GPS_IRQ_SELECTION 	 	  UART2_IRQn
+#define GPS_UART_ISR_HANDLER 	  UART2_IRQHandler
+
+
+
+#define NMEA_MSG_DELIMITER   ','
+
+/* module static variables */
+static uint8_t gps_rxbuff[GPS_UART_RRB_SIZE];
+static uint8_t gps_txbuff[GPS_UART_SRB_SIZE];
+static NMEA_MSG_T nmea_msg_t;
+static RINGBUFF_T gps_txring, gps_rxring;
+static GPS_POSITION_DATA_T current_position;
+static GPS_POSITION_DATA_T prev_position;
+GPS_POSITION_DATA_T const * ProcessGPSMessage(char *,  NMEA_MSG_T *);
+uint8_t ValidateNMEAChecksum(char *);
+void ParseNMEAMessage(char *,  NMEA_MSG_T *);
+void FillNMEAMessageStruct(NMEA_MSG_T *);
+
+/* test messages */
+//char gprmc_test_data2[] = "$GPRMC,092750.000,A,5321.6802,N,00630.3372,W,0.02,31.66,280511,,,A*43";
+//char gprmc_test_data1[] = "$GPRMC,161229.487,A,3723.2475,N,12158.3416,W,0.13,309.62,120598,,*10\r\n";
+//char gpgga_test_data1[] = "$GPGGA,001038.00,3334.2313457,N,11211.0576940,W,2,04,5.4,354.682,M,-26.574,M,7.0,0138*79";
+//char gpgga_test_data2[] = "$GPGGA,015540.000,3150.68378,N,11711.93139,E,1,17,0.6,0051.6,M,0.0,M,,*58";
+
+static bool nmea_parse_gpgsa(const char *, NMEA_MSG_T *);
+static bool nmea_parse_gprmc(const char *, NMEA_MSG_T *);
+static bool nmea_parse_gpgga(const char *, NMEA_MSG_T *);
+
+static bool nmea_parse_int(const char **, uint8_t, uint32_t *const);
+static bool nmea_parse_character(const char **, char *const);
+static bool nmea_parse_fixed_point(const char **, uint32_t *const, uint32_t *const);
+static int32_t gps_convert_to_linear_degrees(const struct nmea_gps_coord_val *const,const enum nmea_gps_coord_indicator);
+static double CalculateDistance(int32_t, int32_t, int32_t, int32_t);
+/** Moves to the next token in a NMEA sentence.*/
+#define NMEA_NEXT_TOKEN(buffer)      if (**buffer != '\0') { (*buffer)++; }
+
+/* Current token in the NMEA sentence */
+#define NMEA_CURRENT_TOKEN(buffer)   ((unsigned char)**buffer)
+
+
+void Trio_Init_GPS_UART()
+{
+	uint8_t key;
+	int bytes;
+
+	//Board_UART_Init(GPS_UART);
+
+	/* Setup UART for 96008N1 */
+	Chip_UART_Init(GPS_UART);
+	Chip_UART_ConfigData(GPS_UART, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1);
+//	Chip_Clock_SetUSARTNBaseClockRate((GPS_BAUD_RATE * 16), true);
+	Chip_UART_SetBaud(GPS_UART, GPS_BAUD_RATE);
+	Chip_UART_Enable(GPS_UART);
+	Chip_UART_TXEnable(GPS_UART);
+
+	/* Before using the ring buffers, initialize them using the ring
+	   buffer init function */
+	RingBuffer_Init(&gps_rxring, gps_rxbuff, 1, GPS_UART_RRB_SIZE);
+//	RingBuffer_Init(&gps_txring, gps_txbuff, 1, GPS_UART_SRB_SIZE);
+
+	Chip_UART_IntEnable(GPS_UART, UART_INTEN_RXRDY);
+
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(GPS_IRQ_SELECTION, 1);
+	NVIC_EnableIRQ(GPS_IRQ_SELECTION);
+	return 1;
+}
+/*************************************************************/
+void Init_GPS_UART_Pinmux()
+{
+	/* Enable the clock to the Switch Matrix */
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+
+	Chip_SWM_MovablePinAssign(SWM_U2_TXD_O, 27);
+	Chip_SWM_MovablePinAssign(SWM_U2_RXD_I, 16);
+
+	/* Disable the clock to the Switch Matrix to save power */
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+/*************************************************************/
+void GPS_UART_ISR_HANDLER(void)
+{
+	/* Want to handle any errors? Do it here. */
+
+	/* Use default ring buffer handler. Override this with your own
+	   code if you need more capability. */
+	Chip_UART_IRQRBHandler(GPS_UART, &gps_rxring, &gps_txring);
+}
+/***************************************************************************************/
+void Trio_GpsTask()
+{
+	static uint8_t u8_charCount = 0;
+
+
+//	GPS_POSITION_DATA_T const *gps_position_data;
+	static char gps_message_buffer[GPS_MESSAGE_BUFFER_SIZE];
+	char c_gpsMsgChar;
+	char *pMsg;
+	if(Chip_UART_ReadRB(GPS_UART, &gps_rxring, &c_gpsMsgChar, 1)) {
+		switch(c_gpsMsgChar) {
+			case CHAR_CR:    /* carriage return */
+			gps_message_buffer[u8_charCount++] = c_gpsMsgChar;
+			break;
+
+			case CHAR_LF:    /* line feed */
+			if(gps_message_buffer[u8_charCount - 1] == CHAR_CR) {
+				gps_message_buffer[u8_charCount++] = c_gpsMsgChar;
+				gps_message_buffer[u8_charCount] = '\0';
+				u8_charCount = 0;
+//				PRINT_K(gps_message_buffer);
+			    ProcessGPSMessage(gps_message_buffer, &nmea_msg_t);
+			}
+			break;
+
+			default:
+			gps_message_buffer[u8_charCount++] = c_gpsMsgChar;
+			break;
+		}
+	}
+	/* timer to send T message expired */
+
+}
+/******************************************************************/
+GPS_POSITION_DATA_T const * ProcessGPSMessage(char *gps_msg,  NMEA_MSG_T *nmea_msg_t)
+{
+	if(!ValidateNMEAChecksum(gps_msg)) {
+		PRINT_K("GPS checksum failed");
+		return NULL;
+	}
+
+	else {
+		ParseNMEAMessage(gps_msg, nmea_msg_t);
+		switch(nmea_msg_t->type)
+		{
+			case NMEA_TYPE_GPRMC:
+			/* keep previous coordinates */
+			if(nmea_msg_t->nmea_msg_items_t.gprmc.status == NMEA_GPRMC_VALID) {
+				current_position.latitude = gps_convert_to_linear_degrees(
+						   &(nmea_msg_t->nmea_msg_items_t.gprmc.coords.latitude),
+						   NMEA_GPS_COORD_NORTH);
+				current_position.longitude = gps_convert_to_linear_degrees(
+						   &(nmea_msg_t->nmea_msg_items_t.gprmc.coords.longitude),
+						   NMEA_GPS_COORD_EAST);
+
+				/* Measure distance between two coordinates */
+				current_position.distance = CalculateDistance(prev_position.latitude,
+															  current_position.latitude,
+															  prev_position.longitude,
+															  current_position.longitude);
+				/* keep current coordinates*/
+				prev_position = current_position;
+			}
+			break;  /*  end of NMEA_TYPE_GPRMC */
+
+			case NMEA_TYPE_GPGGA:
+			break;
+
+			case NMEA_TYPE_GPGSA:
+			break;
+			/*****/
+
+
+		}  /** end of switch statement */
+	}
+	return &current_position;
+}
+/**********************************************************************/
+/*  Validates NMEA message checksum. Returns 1 if chacksum is correct */
+/*  otherwise returns 0                                                */
+/**********************************************************************/
+uint8_t ValidateNMEAChecksum(char *gps_msg)
+{
+	uint8_t i = 1;
+	uint8_t u8_calcChecksum = 0;
+	return 1;
+	/* string representation of both received and calculated checksums */
+	char s_calcChecksum[3];
+	char s_recvChecksum[3];
+
+	uint8_t u8_msgLen = strlen(gps_msg);
+
+	while(gps_msg[i] != '*')
+		u8_calcChecksum ^= gps_msg[i++];
+
+	s_calcChecksum[0] = u8_calcChecksum / 16 + 0x30;
+	s_calcChecksum[1] = u8_calcChecksum % 16;
+
+	if( s_calcChecksum[1] < 10)
+		s_calcChecksum[1] =s_calcChecksum[1] + 48;
+	else
+		s_calcChecksum[1] = s_calcChecksum[1] + 55;
+
+	s_calcChecksum[2] = '\0';
+
+	strncpy(s_recvChecksum, &gps_msg[u8_msgLen - 4], 2);
+	if(strcmp(s_calcChecksum, s_recvChecksum) == 0)
+		return 1;
+	else
+		return 0;
+}
+/*************************************************************************/
+NMEA_STRINGS_T string_cases [] =
+{
+	{ "$GPRMC", nmea_parse_gprmc },
+    { "$GPGGA", nmea_parse_gpgga },
+	{ "$GPGSA", nmea_parse_gpgsa },
+};
+/**********************************************************************/
+void ParseNMEAMessage(char* gps_msg, NMEA_MSG_T *nmea_msg_t)
+{
+	NMEA_STRINGS_T* pCase;
+	char buffer[7];
+
+	memset(buffer, '\0', sizeof(buffer));
+   /* get the nmea message ID */
+	strncpy(buffer, gps_msg, 6);
+
+	//PRINT_K(buffer);
+	nmea_msg_t->type = (enum nmea_data_type)NMEA_TYPE_UNKNOWN;
+    for(pCase = string_cases
+				; pCase != string_cases + sizeof( string_cases ) / sizeof( string_cases[0])
+				; pCase++ ){
+		if(strcmp( pCase->string, buffer) == 0){
+			(*pCase->func)(gps_msg, nmea_msg_t);
+			break;
+		}
+	}
+}
+/********************************************************************/
+/* Parse sentence until the next comma delimited field.
+/* param : buffer  Current location in the NMEA sentence
+/********************************************************************/
+void nmea_parse_next_field(const char **buffer, char seperator)
+{
+	while (NMEA_CURRENT_TOKEN(buffer) != seperator)
+		NMEA_NEXT_TOKEN(buffer);
+
+	NMEA_NEXT_TOKEN(buffer);
+}
+/********************************************************************/
+static bool nmea_parse_gpgsa(const char *buffer, NMEA_MSG_T *data)
+{
+	bool b_parseSuccess = true;
+	uint32_t temp_int, temp_int2;
+	uint8_t i;
+	char temp_char;
+
+	//PRINT_K("Parsing GPGSA message\r\n");
+
+	data->type = (enum nmea_data_type)NMEA_TYPE_GPGSA;
+
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+	data->nmea_msg_items_t.gpgsa.mode1 = temp_char;
+
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_int(&buffer, -1, &temp_int);
+	data->nmea_msg_items_t.gpgsa.mode2 = temp_int;
+
+/*	temp[0] = data->nmea_msg_items_t.gpgsa.mode2 + 0x30;
+	temp[1] = 0;
+	PRINT_K("gpgsa.mode2 = ");
+	PRINT_K(temp);
+	PRINT_K("\r\n");*/
+
+	nmea_parse_next_field(&buffer, ',');
+
+	for (i = 0; i < sizeof(data->nmea_msg_items_t.gpgsa.satellite) / sizeof(data->nmea_msg_items_t.gpgsa.satellite[0]); i++) {
+		b_parseSuccess &= nmea_parse_int(&buffer, -1, &temp_int);
+		data->nmea_msg_items_t.gpgsa.satellite[i] = temp_int;
+
+	/*	itoa(data->nmea_msg_items_t.gpgsa.satellite[i], temp, 10);
+		PRINT_K("data->nmea_msg_items_t.gpgsa.satellite[i] = ");
+		PRINT_K(temp);
+		PRINT_K("\r\n");*/
+		nmea_parse_next_field(&buffer, ',');
+	}
+
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgsa.pdop_int = temp_int;
+		data->nmea_msg_items_t.gpgsa.pdop_frac = temp_int2;
+
+	/*	uitoa(data->nmea_msg_items_t.gpgsa.pdop_int , temp,10);
+		PRINT_K(temp);
+		PRINT_K("\r\n");
+		uitoa(data->nmea_msg_items_t.gpgsa.pdop_frac , temp,10);
+		PRINT_K(temp);
+		PRINT_K("\r\n");*/
+	}
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	data->nmea_msg_items_t.gpgsa.hdop_int = temp_int;
+	data->nmea_msg_items_t.gpgsa.hdop_frac = temp_int2;
+
+	/*uitoa(data->nmea_msg_items_t.gpgsa.hdop_int , temp,10);
+	PRINT_K(temp);
+	PRINT_K("\r\n");
+	uitoa(data->nmea_msg_items_t.gpgsa.hdop_frac , temp,10);
+	PRINT_K(temp);
+	PRINT_K("\r\n");*/
+
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	data->nmea_msg_items_t.gpgsa.vdop_int = temp_int;
+	data->nmea_msg_items_t.gpgsa.vdop_frac = temp_int2;
+
+	/*uitoa(data->nmea_msg_items_t.gpgsa.vdop_int , temp,10);
+	PRINT_K(temp);
+	PRINT_K("\r\n");
+	uitoa(data->nmea_msg_items_t.gpgsa.vdop_frac , temp,10);
+	PRINT_K(temp);
+	PRINT_K("\r\n");*/
+
+	return b_parseSuccess;
+}
+/*****************************************************************/
+static bool nmea_parse_gprmc(const char *buffer, NMEA_MSG_T * data)
+{
+	bool b_parseSuccess = true;
+	uint32_t temp_int;
+	uint32_t temp_int2;
+	char temp_char;
+    char buf[10];
+    char buffer2[10];
+
+	data->type = (enum nmea_data_type)NMEA_TYPE_GPRMC;
+
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gprmc.utc_hour = temp_int;
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gprmc.utc_minute = temp_int;
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gprmc.utc_second = temp_int;
+
+	nmea_parse_next_field(&buffer, ',');
+	//PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+
+	if(b_parseSuccess)
+		data->nmea_msg_items_t.gprmc.status = (NMEA_GPRMC_STATUS_T)temp_char;
+
+	nmea_parse_next_field(&buffer, ',');
+	//PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	/* parsing latitude */
+	if(b_parseSuccess){
+		//PRINT_K("RMC Latitude parsed");
+		data->nmea_msg_items_t.gprmc.coords.latitude.degrees      = temp_int / 100;
+		data->nmea_msg_items_t.gprmc.coords.latitude.minutes      = temp_int % 100;
+		data->nmea_msg_items_t.gprmc.coords.latitude.minutes_frac = temp_int2;
+	}
+
+	/* parsing latitude indicator*/
+	nmea_parse_next_field(&buffer, ',');
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+	if(b_parseSuccess){
+	//	PRINT_K("RMC Latitude indicator parsed");
+		data->nmea_msg_items_t.gprmc.coords.latitude.indicator = (enum nmea_gps_coord_indicator)temp_char;
+	}
+
+    /* parsing Longitude */
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.coords.longitude.degrees      = temp_int / 100;
+		data->nmea_msg_items_t.gprmc.coords.longitude.minutes      = temp_int % 100;
+		data->nmea_msg_items_t.gprmc.coords.longitude.minutes_frac = temp_int2;
+	//	PRINT_K("RMC Longtitude parsed");
+	}
+/*	PRINT_K("\r\naaaaaaaaaaaaaaaaaaaaaaaaa\r\n");
+	itoa(data->nmea_msg_items_t.gprmc.coords.longitude.degrees, buffer2, 10);
+	PRINT_K(buffer2);
+	PRINT_K("\r\n");
+	itoa(data->nmea_msg_items_t.gprmc.coords.longitude.minutes, buffer2, 10);
+	PRINT_K(buffer2);
+	PRINT_K("\r\n");
+	itoa(data->nmea_msg_items_t.gprmc.coords.longitude.minutes_frac, buffer2, 10);
+	PRINT_K(buffer2);
+	PRINT_K("\r\n");
+	PRINT_K("aaaaaaaaaaaaaaaaaaaaaaaaa\r\n");*/
+
+	/* parsing longtitude indicator*/
+	nmea_parse_next_field(&buffer, ',');
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.coords.longitude.indicator = (enum nmea_gps_coord_indicator)temp_char;
+	//	PRINT_K("RMC Longtitude indicator parsed");
+	}
+
+	/* parsing speed*/
+	nmea_parse_next_field(&buffer, ',');
+	//PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.speed      = temp_int;
+		data->nmea_msg_items_t.gprmc.speed_frac = temp_int2;
+		//PRINT_K("RMC Speed parsed");
+	}
+
+	/*data->nmea_msg_items_t.gprmc.speed      = 3000;
+	data->nmea_msg_items_t.gprmc.speed_frac = temp_int2;*/
+
+	/* parsing course over ground*/
+	nmea_parse_next_field(&buffer, ',');
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.course      = temp_int;
+		data->nmea_msg_items_t.gprmc.course_frac = temp_int2;
+		//PRINT_K("RMC Coarse parsed");
+	}
+
+	/* parsing date*/
+	nmea_parse_next_field(&buffer, ',');
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.day = temp_int;
+	//	PRINT_K("RMC Day parsed");
+	}
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.month = temp_int;
+		//PRINT_K("RMC Month parsed");
+	}
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gprmc.year = temp_int;
+		//PRINT_K("RMC Year parsed");
+	}
+	return b_parseSuccess;
+}
+/****************************************************************************/
+static bool nmea_parse_gpgga(const char *buffer, NMEA_MSG_T * data)
+{
+	bool b_parseSuccess = true;
+	uint32_t temp_int;
+	uint32_t temp_int2;
+	char temp_char;
+
+	data->type = (enum nmea_data_type)NMEA_TYPE_GPGGA;
+	/* parsing time */
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gpgga.utc_hour = temp_int;
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gpgga.utc_minute = temp_int;
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	data->nmea_msg_items_t.gpgga.utc_second = temp_int;
+
+    /* parsing latitude*/
+	nmea_parse_next_field(&buffer, ',');
+
+	//PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+	if(b_parseSuccess){
+		//PRINT_K("Latitude parsed");
+		data->nmea_msg_items_t.gpgga.coords.latitude.degrees      = temp_int / 100;
+		data->nmea_msg_items_t.gpgga.coords.latitude.minutes      = temp_int % 100;
+		data->nmea_msg_items_t.gpgga.coords.latitude.minutes_frac = temp_int2;
+	}
+
+	/* parsing latitude indicator*/
+	nmea_parse_next_field(&buffer, ',');
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+	if(b_parseSuccess){
+	//	PRINT_K("Latitude indicator parsed");
+		data->nmea_msg_items_t.gpgga.coords.latitude.indicator = (enum nmea_gps_coord_indicator)temp_char;
+	}
+
+    /* parsing Longitude */
+	nmea_parse_next_field(&buffer, ',');
+
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_fixed_point(&buffer, &temp_int, &temp_int2);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgga.coords.longitude.degrees      = temp_int / 100;
+		data->nmea_msg_items_t.gpgga.coords.longitude.minutes      = temp_int % 100;
+		data->nmea_msg_items_t.gpgga.coords.longitude.minutes_frac = temp_int2;
+	//	PRINT_K("Longtitude parsed");
+	}
+
+	/* parsing longtitude indicator*/
+	nmea_parse_next_field(&buffer, ',');
+
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_character(&buffer, &temp_char);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgga.coords.longitude.indicator = (enum nmea_gps_coord_indicator)temp_char;
+		//PRINT_K("Longtitiude indicator parsed");
+	}
+	/* parsing fix position*/
+	nmea_parse_next_field(&buffer, ',');
+
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_int(&buffer, -1, &temp_int);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgga.position_fix = temp_int;
+		//PRINT_K("Fix position parsed");
+	}
+
+	/* parsing number of satellites field*/
+	nmea_parse_next_field(&buffer, ',');
+
+	b_parseSuccess &= nmea_parse_int(&buffer, -1, &temp_int);
+//	PRINT_K(buffer);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgga.satellites = temp_int;
+	//	PRINT_K("Satellites parsed");
+	}
+	/* Horizontal Dilution Of Precision is not used. Do a dummy read */
+	nmea_parse_next_field(&buffer, ',');
+
+	/* parsing altitude*/
+	nmea_parse_next_field(&buffer, ',');
+
+//	PRINT_K(buffer);
+	b_parseSuccess &= nmea_parse_int(&buffer, 2, &temp_int);
+	if(b_parseSuccess){
+		data->nmea_msg_items_t.gpgga.altitude = temp_int;
+		//PRINT_K("Altitude parsed");
+	}
+	return b_parseSuccess;
+}
+/*****************************************************************************/
+/* Parse the current integer field value.
+ *
+ * buffer      [in, out]  Current location in the NMEA sentence
+ * max_length  [in}       Maximum length of the  integer
+ * out         [out]      Location of the parsed integer
+ *
+ * ***************************************************************************/
+static bool nmea_parse_int(const char **buffer, uint8_t max_length, uint32_t *const out)
+{
+	uint32_t parsed_value = 0;
+
+	while (isdigit(NMEA_CURRENT_TOKEN(buffer)) && max_length--) {
+		parsed_value = (parsed_value * 10) + (NMEA_CURRENT_TOKEN(buffer) - '0');
+		NMEA_NEXT_TOKEN(buffer);
+	}
+
+	*out = parsed_value;
+	return true;
+}
+/*****************************************************************************/
+/* Parse the current character field value.
+ *
+ *  buffer [in, out] Current location in the NMEA sentence
+ *  out    [out]     Location of the parsed character
+ *
+ *  return bool  true if the field was parsed successfully.
+ *
+ /***************************************************************************/
+static bool nmea_parse_character(const char **buffer, char *const out)
+{
+	char parsed_char   = '\0';
+	bool b_parseSuccess = false;
+
+	if (isupper(NMEA_CURRENT_TOKEN(buffer))) {
+		parsed_char   = NMEA_CURRENT_TOKEN(buffer);
+		b_parseSuccess = true;
+	}
+//	NMEA_NEXT_TOKEN(buffer);
+
+	*out = parsed_char;
+
+	return b_parseSuccess;
+}
+/***************************************************************************/
+/* Parse the current fixed point X.Y field value.
+ *
+ *  buffer          [in, out]   Current location in the NMEA sentence
+ *  out_whole       [out]       Location of the parsed integer portion
+ *  out_fractional  [out]       Location of the parsed fractional portion
+ *
+ * return bool true if the field was parsed successfully.
+ */
+/***************************************************************************/
+static bool nmea_parse_fixed_point(const char **buffer, uint32_t *const out_whole, uint32_t *const out_fractional)
+{
+	uint32_t parsed_fractional = 0;
+	uint32_t parsed_whole      = 0;
+	uint32_t i	               = 0;
+	bool b_parseSuccess        = true;
+
+	b_parseSuccess &= nmea_parse_int(buffer, -1, &parsed_whole);
+
+	if(b_parseSuccess)
+	{
+		if (NMEA_CURRENT_TOKEN(buffer) != '.') {
+			return false;
+		}
+		NMEA_NEXT_TOKEN(buffer);
+
+		for (i = 10; i <= NMEA_FRACTIONAL_SCALER; i *= 10) {
+
+			if (!isdigit(NMEA_CURRENT_TOKEN(buffer)))
+				break;
+			else{
+				parsed_fractional *= 10;
+				parsed_fractional += (NMEA_CURRENT_TOKEN(buffer) - '0');
+				NMEA_NEXT_TOKEN(buffer);
+			}
+		}
+		*out_whole      = parsed_whole;
+		*out_fractional = parsed_fractional;
+
+	}
+	return b_parseSuccess;
+}
+/*****************************************************************************/
+/** Converts a latitude/longitude coordinate from Degrees, Minutes and
+ *  Fractional Minutes to linear number of degrees scaled by
+ *  GPS_POS_DEGREES_SCALER.
+ *
+ *   gps_coord          [in]     Raw DDMM.mmmm coordinate from a GPS module
+ *   positive_indicator [in]     Indicator when the degrees is positive
+ *
+ *  return Input coordinate converted to a scaled number of linear degrees.
+ ******************************************************************************/
+static int32_t gps_convert_to_linear_degrees(
+		       const struct nmea_gps_coord_val *const gps_coord,
+			   const enum nmea_gps_coord_indicator positive_indicator)
+{
+	int32_t new_coordinate;
+
+	/* Convert raw GPS latitude to linear floating point */
+	new_coordinate  = gps_coord->degrees * GPS_POS_DEGREES_SCALER;
+	new_coordinate += gps_coord->minutes * GPS_POS_DEGREES_SCALER / 60;
+	new_coordinate += gps_coord->minutes_frac /
+			(GPS_POS_DEGREES_SCALER / NMEA_FRACTIONAL_SCALER * 60);
+
+	/* Negate converted coordinate if the orientation is negative */
+	if (gps_coord->indicator != positive_indicator) {
+		new_coordinate = -new_coordinate;
+		}
+
+	return new_coordinate;
+}
+/**********************************************************************************/
+double CalculateDistance(int32_t i_prevLat, int32_t i_currLat, int32_t i_prevLon, int32_t i_currLon)
+{
+	double f_temp1 = 0;
+	double f_temp2 = 0;
+    char buffer[50];
+	/* Convert ddMM to degrees*/
+	double R = 6371000;
+//	PRINT_K("Printing parameters");
+	//sprintf (buffer, "i_prevLat = %d", i_prevLat);
+//	PRINT_K(buffer);
+//	sprintf (buffer, "i_currLat = %d", i_currLat);
+	//PRINT_K(buffer);
+//	sprintf (buffer, "i_prevLon = %d", i_prevLon);
+//	PRINT_K(buffer);
+//	sprintf (buffer, "i_currLon = %d", i_currLon);
+//	PRINT_K(buffer);
+
+	double f_lat = (double)(i_currLat - i_prevLat) * 0.0174532925;    /* to radian*/
+	double f_lon = (double)(i_currLon - i_prevLon) * 0.0174532925;    /* to radian*/
+
+	f_temp1 = i_currLat * 0.0174532925;
+	f_temp2 = i_prevLat * 0.0174532925;
+
+	//PRINT_K("Printing f_temps");
+//	sprintf (buffer, "f_temp1 = %f", f_temp1);
+//	PRINT_K(buffer);
+//	sprintf (buffer, "f_temp2 = %f", f_temp2);
+//	PRINT_K(buffer);
+
+	double a = sin(f_lat/2) * sin(f_lat/2) + sin(f_lon/2) * sin(f_lon/2) * cos(f_temp1) * cos(f_temp2);
+	double c = 2 * atan2(sqrt(a), sqrt(1-a));
+
+	//sprintf (buffer, "Measured distance = %f", R*c);
+//	PRINT_K(buffer);
+/*	PRINT_K("Distance:");
+	itoa(current_position.longitude, buf,10);
+					PRINT_K(buf);
+					PRINT_K("...........................");*/
+	return R * c;
+}
+/************************************************************************/
+void Get_RMCInfo(RMC_MESSAGE_T *rmc_info)
+{
+	*rmc_info = nmea_msg_t.nmea_msg_items_t.gprmc;
+}
+/*************************************************************************/
+void Get_GSAInfo(GSA_MESSAGE_T *gsa_info)
+{
+	*gsa_info = nmea_msg_t.nmea_msg_items_t.gpgsa;
+}
+/*************************************************************************/
+void Get_GGAInfo(GGA_MESSAGE_T *gga_info)
+{
+	*gga_info = nmea_msg_t.nmea_msg_items_t.gpgga;
+}
+/************************************************************************/
+NMEA_MSG_T * GetPtrToNMEAStruct()
+{
+	return &nmea_msg_t;
+}
+/*************************************************************************/
+GPS_POSITION_DATA_T *GetPtrToCurrentPosition()
+{
+	return &current_position;
+}
+void Get_PositionInfo(GPS_POSITION_DATA_T *const position_info)
+{
+	*position_info = current_position;
+}

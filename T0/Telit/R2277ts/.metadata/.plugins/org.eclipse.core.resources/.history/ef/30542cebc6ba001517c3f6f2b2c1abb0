@@ -1,0 +1,227 @@
+/*
+===============================================================================
+ Name        : T0_Project.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#if defined (__USE_LPCOPEN)
+#if defined(NO_BOARD_LIB)
+#include "chip.h"
+#else
+#include <stddef.h>
+#include <string.h>
+#include "board.h"
+#include "timer.h"
+#include "MMA7455.h"
+#include "gsm.h"
+#include "gps.h"
+#include "settings.h"
+#include "status.h"
+#include "spi.h"
+#include "i2c.h"
+#include "utils.h"
+#include "settings.h"
+#endif
+#endif
+
+#include <cr_section_macros.h>
+void Init_UART_PinMux();
+void EnableBODReset();
+void Configure_HardwarePinMuxes();
+// TODO: insert other definitions and declarations here
+
+extern void _vStackTop(void);
+extern float f_kmTempCounter;
+int main(void) {
+#if defined (__USE_LPCOPEN)
+#if !defined(NO_BOARD_LIB)
+
+    	SystemCoreClockUpdate();
+    	SysTick_Config(SystemCoreClock / TICKRATE_HZ1);
+    	Configure_HardwarePinMuxes();
+    //	Init_UART_PinMux();
+    //	Init_GSM_UART_PinMux();
+    //	Init_GPS_UART_Pinmux();
+
+    	Init_GsmInfo();
+    	Init_DEBUG_USART();
+    	Trio_Init_GSM_UART();
+    	Trio_Init_GPS_UART();
+    	Trio_ConfigureSimDetectInterrupt();
+    	Trio_ConfigureIgnDetectInterrupt();
+    //	Init_EventInfo();
+
+    	Set_GsmResetPinFunction(GSM_RESET_PIN);
+    	Trio_ConfigureRelayGPIO();
+    	//Trio_ConfigureGPSPowerTogglePin();
+    	Board_LED_Init();
+    	EnableBODReset();
+#endif
+#endif
+
+    	Trio_SPI_Init();
+    	Init_SPI_Cache();
+   // Print_Val("Initial Stack Pointer 0x",_vStackTop);
+    	Init_WDT(WATCHDOG_TIMEOUT_IN_SECS);
+    	SST25_Jedec_ID_Read();          /*  read flash ID*/
+   // MMA7455_Read(0, 2, buffer);
+    	SST25_EnableWSR();
+    	SST25_WriteSR(0x00);
+    /*    SST25_ChipErase();
+
+    	if(SST25_IsEmpty()) {
+    		PRINT_K("Flash empty\r\n");
+    		WriteInitialValuesToFlash();
+    	}
+    	else
+    		PRINT_K("Flash not empty\r\n");*/
+
+    	Load_UserSettings();
+    	Load_KmCounter();
+    	Init_StatusInfo();
+    	ExecuteMainLoop();   /* never returns*/
+
+    	NVIC_SystemReset();
+}
+/******************************************************************/
+#define START_ADDR_LAST_SECTOR  0x00003C00
+
+/* Size of each sector */
+#define SECTOR_SIZE             256
+
+/* LAST SECTOR */
+#define IAP_LAST_SECTOR         15
+
+/* Number of bytes to be written to the last sector */
+#define IAP_NUM_BYTES_TO_WRITE  1024
+
+/* Number elements in array */
+#define ARRAY_ELEMENTS          (IAP_NUM_BYTES_TO_WRITE / sizeof(uint32_t))
+
+/* Data array to write to flash */
+static uint32_t src_iap_data[ARRAY_ELEMENTS];
+void WriteFlash(){
+	int i;
+	uint8_t ret_code;
+	uint32_t part_id;
+	uint32_t unique_id;
+
+	for (i = 0; i < ARRAY_ELEMENTS; i++) {
+			src_iap_data[i] = 0x11223340 + i;
+		}
+
+		/* Read Part Identification Number*/
+		part_id = Chip_IAP_ReadPID();
+		Print_Val("Part ID is: 0x", part_id);
+
+		/* Read Part Unique Identification Number*/
+		unique_id = Chip_IAP_ReadUID();
+		Print_Val("Part S/N is: 0x", unique_id);
+		PRINT_K("\r\n**************\r\n");
+		/* Disable interrupt mode so it doesn't fire during FLASH updates */
+		__disable_irq();
+
+		/* IAP Flash programming */
+		/* Prepare to write/erase the last sector */
+		ret_code = Chip_IAP_PreSectorForReadWrite(IAP_LAST_SECTOR, IAP_LAST_SECTOR);
+
+		/* Error checking */
+		if (ret_code == IAP_CMD_SUCCESS) {
+			Print_Val("Command failed to execute, return code is: ", ret_code);
+		}
+
+		/* Erase the last sector */
+		ret_code = Chip_IAP_EraseSector(IAP_LAST_SECTOR, IAP_LAST_SECTOR);
+
+		/* Error checking */
+		if (ret_code != IAP_CMD_SUCCESS) {
+			Print_Val("Command failed to execute, return code is: ", ret_code);
+		}
+
+		/* Prepare to write/erase the last sector */
+		ret_code = Chip_IAP_PreSectorForReadWrite(IAP_LAST_SECTOR, IAP_LAST_SECTOR);
+
+		/* Error checking */
+		if (ret_code != IAP_CMD_SUCCESS) {
+			Print_Val("Command failed to execute, return code is: ", ret_code);
+		}
+
+		/* Write to the last sector */
+		ret_code = Chip_IAP_CopyRamToFlash(START_ADDR_LAST_SECTOR, src_iap_data, IAP_NUM_BYTES_TO_WRITE);
+
+		/* Error checking */
+		if (ret_code != IAP_CMD_SUCCESS) {
+			Print_Val("Command failed to execute, return code is: ", ret_code);
+		}
+		__enable_irq();
+		int *ptr;
+		int h ;
+		ptr = START_ADDR_LAST_SECTOR;
+
+       for (h = 0; h < 256; h++){
+    	   Print_Val("", *ptr);
+    	   PRINT_K("\r");
+    	   ptr++;
+    	   Delay(10,NULL);
+       }
+
+
+}
+/************************************************************************/
+void Configure_HardwarePinMuxes()
+{
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+
+	Chip_Clock_SetUARTClockDiv(1);
+
+	/* configure debug port UART */
+	Chip_SWM_MovablePinAssign(SWM_U0_TXD_O, 4);
+	Chip_SWM_MovablePinAssign(SWM_U0_RXD_I, 0);
+
+	/* configure GSM UART*/
+	Chip_SWM_MovablePinAssign(SWM_U1_TXD_O, 18);
+	Chip_SWM_MovablePinAssign(SWM_U1_RXD_I, 11);
+
+	/* configure GPS UART*/
+	Chip_SWM_MovablePinAssign(SWM_U2_TXD_O, 27);
+	Chip_SWM_MovablePinAssign(SWM_U2_RXD_I, 16);
+
+	/* Configure SPI pins*/
+	Chip_SWM_MovablePinAssign(SWM_SPI0_SSEL0_IO, 26);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_SCK_IO, 24);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MISO_IO, 25);
+	Chip_SWM_MovablePinAssign(SWM_SPI0_MOSI_IO, 15);
+
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+
+/************************************************************************/
+ void Init_UART_PinMux(void)
+{
+	//Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+    Chip_Clock_SetUARTClockDiv(1);
+
+	//Chip_SWM_DisableFixedPin(SWM_FIXED_ACMP_I1); //PIO0_0
+	//Chip_SWM_DisableFixedPin(SWM_FIXED_SWCLK);
+
+	Chip_SWM_MovablePinAssign(SWM_U0_TXD_O, 4);
+	Chip_SWM_MovablePinAssign(SWM_U0_RXD_I, 0);
+
+//	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+ /*************************************************************************/
+ void Trio_ConfigureRelayGPIO()
+ {
+	 Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, 19);
+//	 Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 19, false);
+ }
+ /*************************************************************************/
+ void EnableBODReset()
+ {
+	 Chip_SYSCTL_SetBODLevels(SYSCTL_BODRSTLVL_2, SYSCTL_BODINTVAL_LVL0);
+	 Chip_SYSCTL_EnableBODReset();
+ }

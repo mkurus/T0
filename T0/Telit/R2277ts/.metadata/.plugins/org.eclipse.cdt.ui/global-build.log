@@ -1,0 +1,1581 @@
+15:32:05 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+15:32:05 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+15:32:06 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:04:27 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:04:28 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:04:28 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/T0_Project.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/T0_Project.d" -MT"src/T0_Project.o" -MT"src/T0_Project.d" -o "src/T0_Project.o" "../src/T0_Project.c"
+Finished building: ../src/T0_Project.c
+ 
+Building file: ../src/gps.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gps.d" -MT"src/gps.o" -MT"src/gps.d" -o "src/gps.o" "../src/gps.c"
+../src/gps.c: In function 'ProcessGPSMessage':
+../src/gps.c:167:3: warning: enumeration value 'NMEA_TYPE_UNKNOWN' not handled in switch [-Wswitch]
+   switch(nmea_msg_t->type)
+   ^
+Finished building: ../src/gps.c
+ 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:457:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1457:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1390:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/messages.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/messages.d" -MT"src/messages.o" -MT"src/messages.d" -o "src/messages.o" "../src/messages.c"
+../src/messages.c: In function 'Trio_PrepareTMessageExtension':
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_PASSIVE' not handled in switch [-Wswitch]
+  switch(message_type) {
+  ^
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_PASSIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'IDLE_TIME_INDICATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'RFID_CARD_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CANBUS_DATA_READY' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'TEMP_SENSOR_DATA' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ANALOG_INPUT_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'GARMIN_NAVIGATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CELL_ID' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ROAMING_DATA' not handled in switch [-Wswitch]
+../src/messages.c:400:6: warning: unused variable 'i_batteryVoltage' [-Wunused-variable]
+  int i_batteryVoltage;
+      ^
+Finished building: ../src/messages.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/spi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/spi.d" -MT"src/spi.o" -MT"src/spi.d" -o "src/spi.o" "../src/spi.c"
+../src/spi.c: In function 'AddOfflineDataToCache':
+../src/spi.c:796:10: warning: pointer targets in passing argument 1 of 'PRINT_K' differ in signedness [-Wpointer-sign]
+  PRINT_K(p_msgStart);
+          ^
+In file included from ../src/spi.c:6:0:
+../src/utils.h:13:6: note: expected 'const char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ void PRINT_K(const char *);
+      ^
+../src/spi.c: In function 'Get_CurrentReadSectorNumber':
+../src/spi.c:1090:12: warning: unused variable 'result' [-Wunused-variable]
+   uint32_t result;
+            ^
+../src/spi.c: At top level:
+../src/spi.c:130:13: warning: 'Init_SPI_PinMux' defined but not used [-Wunused-function]
+ static void Init_SPI_PinMux(void)
+             ^
+../src/spi.c:107:13: warning: 'b_flashHealtStatus' defined but not used [-Wunused-variable]
+ static bool b_flashHealtStatus = FALSE;
+             ^
+../src/spi.c: In function 'MMA7455_Read':
+../src/spi.c:484:2: warning: 'tempBuffer' is used uninitialized in this function [-Wuninitialized]
+  send_spi_data(LPC_SPIACCELPORT, flashTransferTXBuffer, 2, tempBuffer, 2);
+  ^
+Finished building: ../src/spi.c
+ 
+Building file: ../src/status.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/status.d" -MT"src/status.o" -MT"src/status.d" -o "src/status.o" "../src/status.c"
+Finished building: ../src/status.c
+ 
+Building file: ../src/utils.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/utils.d" -MT"src/utils.o" -MT"src/utils.d" -o "src/utils.o" "../src/utils.c"
+Finished building: ../src/utils.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31084	     28	  10090	  41202	   a0f2	T0.axf
+ 
+16:17:30 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:17:31 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:17:31 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:457:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Restart_Modem':
+../src/gsm.c:1020:2: warning: implicit declaration of function 'gsm_led_blink' [-Wimplicit-function-declaration]
+  gsm_led_blink();
+  ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1443:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1376:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+../src/gsm.c: At top level:
+../src/gsm.c:1506:6: warning: conflicting types for 'gsm_led_blink'
+ void gsm_led_blink()
+      ^
+../src/gsm.c:1020:2: note: previous implicit declaration of 'gsm_led_blink' was here
+  gsm_led_blink();
+  ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31148	     28	  10090	  41266	   a132	T0.axf
+ 
+16:19:30 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:19:31 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:19:31 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:457:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Restart_Modem':
+../src/gsm.c:1020:2: warning: implicit declaration of function 'gsm_led_blink' [-Wimplicit-function-declaration]
+  gsm_led_blink();
+  ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1443:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1376:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+../src/gsm.c: At top level:
+../src/gsm.c:1506:6: warning: conflicting types for 'gsm_led_blink'
+ void gsm_led_blink()
+      ^
+../src/gsm.c:1020:2: note: previous implicit declaration of 'gsm_led_blink' was here
+  gsm_led_blink();
+  ^
+Finished building: ../src/gsm.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31156	     28	  10090	  41274	   a13a	T0.axf
+ 
+16:22:17 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:22:17 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:22:18 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/T0_Project.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/T0_Project.d" -MT"src/T0_Project.o" -MT"src/T0_Project.d" -o "src/T0_Project.o" "../src/T0_Project.c"
+Finished building: ../src/T0_Project.c
+ 
+Building file: ../src/gps.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gps.d" -MT"src/gps.o" -MT"src/gps.d" -o "src/gps.o" "../src/gps.c"
+../src/gps.c: In function 'ProcessGPSMessage':
+../src/gps.c:167:3: warning: enumeration value 'NMEA_TYPE_UNKNOWN' not handled in switch [-Wswitch]
+   switch(nmea_msg_t->type)
+   ^
+Finished building: ../src/gps.c
+ 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/messages.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/messages.d" -MT"src/messages.o" -MT"src/messages.d" -o "src/messages.o" "../src/messages.c"
+../src/messages.c: In function 'Trio_PrepareTMessageExtension':
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_PASSIVE' not handled in switch [-Wswitch]
+  switch(message_type) {
+  ^
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_PASSIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'IDLE_TIME_INDICATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'RFID_CARD_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CANBUS_DATA_READY' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'TEMP_SENSOR_DATA' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ANALOG_INPUT_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'GARMIN_NAVIGATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CELL_ID' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ROAMING_DATA' not handled in switch [-Wswitch]
+../src/messages.c:400:6: warning: unused variable 'i_batteryVoltage' [-Wunused-variable]
+  int i_batteryVoltage;
+      ^
+Finished building: ../src/messages.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/spi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/spi.d" -MT"src/spi.o" -MT"src/spi.d" -o "src/spi.o" "../src/spi.c"
+../src/spi.c: In function 'AddOfflineDataToCache':
+../src/spi.c:796:10: warning: pointer targets in passing argument 1 of 'PRINT_K' differ in signedness [-Wpointer-sign]
+  PRINT_K(p_msgStart);
+          ^
+In file included from ../src/spi.c:6:0:
+../src/utils.h:13:6: note: expected 'const char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ void PRINT_K(const char *);
+      ^
+../src/spi.c: In function 'Get_CurrentReadSectorNumber':
+../src/spi.c:1090:12: warning: unused variable 'result' [-Wunused-variable]
+   uint32_t result;
+            ^
+../src/spi.c: At top level:
+../src/spi.c:130:13: warning: 'Init_SPI_PinMux' defined but not used [-Wunused-function]
+ static void Init_SPI_PinMux(void)
+             ^
+../src/spi.c:107:13: warning: 'b_flashHealtStatus' defined but not used [-Wunused-variable]
+ static bool b_flashHealtStatus = FALSE;
+             ^
+../src/spi.c: In function 'MMA7455_Read':
+../src/spi.c:484:2: warning: 'tempBuffer' is used uninitialized in this function [-Wuninitialized]
+  send_spi_data(LPC_SPIACCELPORT, flashTransferTXBuffer, 2, tempBuffer, 2);
+  ^
+Finished building: ../src/spi.c
+ 
+Building file: ../src/status.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/status.d" -MT"src/status.o" -MT"src/status.d" -o "src/status.o" "../src/status.c"
+Finished building: ../src/status.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31156	     28	  10090	  41274	   a13a	T0.axf
+ 
+16:25:22 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:25:22 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:25:23 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:32:43 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:32:43 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:32:44 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31100	     28	  10090	  41218	   a102	T0.axf
+ 
+16:34:34 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:34:34 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:34:35 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31100	     28	  10090	  41218	   a102	T0.axf
+ 
+16:36:00 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:36:00 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:36:01 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31100	     28	  10090	  41218	   a102	T0.axf
+ 
+16:36:13 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:36:14 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:36:14 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+17:02:45 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+17:02:46 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+17:02:46 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+17:34:33 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+17:34:33 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+17:34:34 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31076	     28	  10090	  41194	   a0ea	T0.axf
+ 
+17:34:59 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+17:35:00 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+17:35:00 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+18:06:07 **** Clean-only build of configuration Debug for project T0 ****
+make -r clean 
+rm -rf  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o  ./src/MMA7455.d ./src/MMA8652.d ./src/T0_Project.d ./src/bootloader.d ./src/cr_startup_lpc82x.d ./src/crp.d ./src/gps.d ./src/gsm.d ./src/i2c.d ./src/messages.d ./src/mtb.d ./src/settings.d ./src/spi.d ./src/status.d ./src/sysinit.d ./src/timer.d ./src/utils.d ./src/xmodem1k.d  T0.axf
+ 
+18:06:07 **** Clean-only build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r clean 
+rm -rf  ./src/board.o ./src/board_sysinit.o  ./src/board.d ./src/board_sysinit.d  liblpc_board_nxp_lpcxpresso_824.a
+ 
+18:06:07 **** Clean-only build of configuration Debug for project lpc_chip_82x ****
+make -r clean 
+rm -rf  ./src/acmp_8xx.o ./src/adc_8xx.o ./src/chip_8xx.o ./src/clock_8xx.o ./src/crc_8xx.o ./src/dma_8xx.o ./src/gpio_8xx.o ./src/i2c_common_8xx.o ./src/i2cm_8xx.o ./src/i2cs_8xx.o ./src/iap.o ./src/iocon_8xx.o ./src/pinint_8xx.o ./src/pmu_8xx.o ./src/ring_buffer.o ./src/sct_8xx.o ./src/sct_pwm_8xx.o ./src/spi_8xx.o ./src/spim_8xx.o ./src/spis_8xx.o ./src/stopwatch_8xx.o ./src/swm_8xx.o ./src/syscon_8xx.o ./src/sysinit_8xx.o ./src/uart_8xx.o ./src/wkt_8xx.o ./src/wwdt_8xx.o  ./src/acmp_8xx.d ./src/adc_8xx.d ./src/chip_8xx.d ./src/clock_8xx.d ./src/crc_8xx.d ./src/dma_8xx.d ./src/gpio_8xx.d ./src/i2c_common_8xx.d ./src/i2cm_8xx.d ./src/i2cs_8xx.d ./src/iap.d ./src/iocon_8xx.d ./src/pinint_8xx.d ./src/pmu_8xx.d ./src/ring_buffer.d ./src/sct_8xx.d ./src/sct_pwm_8xx.d ./src/spi_8xx.d ./src/spim_8xx.d ./src/spis_8xx.d ./src/stopwatch_8xx.d ./src/swm_8xx.d ./src/syscon_8xx.d ./src/sysinit_8xx.d ./src/uart_8xx.d ./src/wkt_8xx.d ./src/wwdt_8xx.d  liblpc_chip_82x.a
+ 
+18:06:07 **** Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+Building file: ../src/acmp_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/acmp_8xx.d" -MT"src/acmp_8xx.o" -MT"src/acmp_8xx.d" -o "src/acmp_8xx.o" "../src/acmp_8xx.c"
+Finished building: ../src/acmp_8xx.c
+ 
+Building file: ../src/adc_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/adc_8xx.d" -MT"src/adc_8xx.o" -MT"src/adc_8xx.d" -o "src/adc_8xx.o" "../src/adc_8xx.c"
+Finished building: ../src/adc_8xx.c
+ 
+Building file: ../src/chip_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/chip_8xx.d" -MT"src/chip_8xx.o" -MT"src/chip_8xx.d" -o "src/chip_8xx.o" "../src/chip_8xx.c"
+Finished building: ../src/chip_8xx.c
+ 
+Building file: ../src/clock_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/clock_8xx.d" -MT"src/clock_8xx.o" -MT"src/clock_8xx.d" -o "src/clock_8xx.o" "../src/clock_8xx.c"
+Finished building: ../src/clock_8xx.c
+ 
+Building file: ../src/crc_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/crc_8xx.d" -MT"src/crc_8xx.o" -MT"src/crc_8xx.d" -o "src/crc_8xx.o" "../src/crc_8xx.c"
+Finished building: ../src/crc_8xx.c
+ 
+Building file: ../src/dma_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/dma_8xx.d" -MT"src/dma_8xx.o" -MT"src/dma_8xx.d" -o "src/dma_8xx.o" "../src/dma_8xx.c"
+Finished building: ../src/dma_8xx.c
+ 
+Building file: ../src/gpio_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/gpio_8xx.d" -MT"src/gpio_8xx.o" -MT"src/gpio_8xx.d" -o "src/gpio_8xx.o" "../src/gpio_8xx.c"
+Finished building: ../src/gpio_8xx.c
+ 
+Building file: ../src/i2c_common_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2c_common_8xx.d" -MT"src/i2c_common_8xx.o" -MT"src/i2c_common_8xx.d" -o "src/i2c_common_8xx.o" "../src/i2c_common_8xx.c"
+Finished building: ../src/i2c_common_8xx.c
+ 
+Building file: ../src/i2cm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2cm_8xx.d" -MT"src/i2cm_8xx.o" -MT"src/i2cm_8xx.d" -o "src/i2cm_8xx.o" "../src/i2cm_8xx.c"
+Finished building: ../src/i2cm_8xx.c
+ 
+Building file: ../src/i2cs_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2cs_8xx.d" -MT"src/i2cs_8xx.o" -MT"src/i2cs_8xx.d" -o "src/i2cs_8xx.o" "../src/i2cs_8xx.c"
+Finished building: ../src/i2cs_8xx.c
+ 
+Building file: ../src/iap.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/iap.d" -MT"src/iap.o" -MT"src/iap.d" -o "src/iap.o" "../src/iap.c"
+Finished building: ../src/iap.c
+ 
+Building file: ../src/iocon_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/iocon_8xx.d" -MT"src/iocon_8xx.o" -MT"src/iocon_8xx.d" -o "src/iocon_8xx.o" "../src/iocon_8xx.c"
+Finished building: ../src/iocon_8xx.c
+ 
+Building file: ../src/pinint_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/pinint_8xx.d" -MT"src/pinint_8xx.o" -MT"src/pinint_8xx.d" -o "src/pinint_8xx.o" "../src/pinint_8xx.c"
+Finished building: ../src/pinint_8xx.c
+ 
+Building file: ../src/pmu_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/pmu_8xx.d" -MT"src/pmu_8xx.o" -MT"src/pmu_8xx.d" -o "src/pmu_8xx.o" "../src/pmu_8xx.c"
+Finished building: ../src/pmu_8xx.c
+ 
+Building file: ../src/ring_buffer.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/ring_buffer.d" -MT"src/ring_buffer.o" -MT"src/ring_buffer.d" -o "src/ring_buffer.o" "../src/ring_buffer.c"
+Finished building: ../src/ring_buffer.c
+ 
+Building file: ../src/sct_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sct_8xx.d" -MT"src/sct_8xx.o" -MT"src/sct_8xx.d" -o "src/sct_8xx.o" "../src/sct_8xx.c"
+Finished building: ../src/sct_8xx.c
+ 
+Building file: ../src/sct_pwm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sct_pwm_8xx.d" -MT"src/sct_pwm_8xx.o" -MT"src/sct_pwm_8xx.d" -o "src/sct_pwm_8xx.o" "../src/sct_pwm_8xx.c"
+Finished building: ../src/sct_pwm_8xx.c
+ 
+Building file: ../src/spi_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spi_8xx.d" -MT"src/spi_8xx.o" -MT"src/spi_8xx.d" -o "src/spi_8xx.o" "../src/spi_8xx.c"
+Finished building: ../src/spi_8xx.c
+ 
+Building file: ../src/spim_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spim_8xx.d" -MT"src/spim_8xx.o" -MT"src/spim_8xx.d" -o "src/spim_8xx.o" "../src/spim_8xx.c"
+Finished building: ../src/spim_8xx.c
+ 
+Building file: ../src/spis_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spis_8xx.d" -MT"src/spis_8xx.o" -MT"src/spis_8xx.d" -o "src/spis_8xx.o" "../src/spis_8xx.c"
+Finished building: ../src/spis_8xx.c
+ 
+Building file: ../src/stopwatch_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/stopwatch_8xx.d" -MT"src/stopwatch_8xx.o" -MT"src/stopwatch_8xx.d" -o "src/stopwatch_8xx.o" "../src/stopwatch_8xx.c"
+Finished building: ../src/stopwatch_8xx.c
+ 
+Building file: ../src/swm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/swm_8xx.d" -MT"src/swm_8xx.o" -MT"src/swm_8xx.d" -o "src/swm_8xx.o" "../src/swm_8xx.c"
+Finished building: ../src/swm_8xx.c
+ 
+Building file: ../src/syscon_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/syscon_8xx.d" -MT"src/syscon_8xx.o" -MT"src/syscon_8xx.d" -o "src/syscon_8xx.o" "../src/syscon_8xx.c"
+Finished building: ../src/syscon_8xx.c
+ 
+Building file: ../src/sysinit_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sysinit_8xx.d" -MT"src/sysinit_8xx.o" -MT"src/sysinit_8xx.d" -o "src/sysinit_8xx.o" "../src/sysinit_8xx.c"
+Finished building: ../src/sysinit_8xx.c
+ 
+Building file: ../src/uart_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/uart_8xx.d" -MT"src/uart_8xx.o" -MT"src/uart_8xx.d" -o "src/uart_8xx.o" "../src/uart_8xx.c"
+Finished building: ../src/uart_8xx.c
+ 
+Building file: ../src/wkt_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/wkt_8xx.d" -MT"src/wkt_8xx.o" -MT"src/wkt_8xx.d" -o "src/wkt_8xx.o" "../src/wkt_8xx.c"
+Finished building: ../src/wkt_8xx.c
+ 
+Building file: ../src/wwdt_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/wwdt_8xx.d" -MT"src/wwdt_8xx.o" -MT"src/wwdt_8xx.d" -o "src/wwdt_8xx.o" "../src/wwdt_8xx.c"
+Finished building: ../src/wwdt_8xx.c
+ 
+Building target: liblpc_chip_82x.a
+Invoking: MCU Archiver
+arm-none-eabi-ar -r  "liblpc_chip_82x.a"  ./src/acmp_8xx.o ./src/adc_8xx.o ./src/chip_8xx.o ./src/clock_8xx.o ./src/crc_8xx.o ./src/dma_8xx.o ./src/gpio_8xx.o ./src/i2c_common_8xx.o ./src/i2cm_8xx.o ./src/i2cs_8xx.o ./src/iap.o ./src/iocon_8xx.o ./src/pinint_8xx.o ./src/pmu_8xx.o ./src/ring_buffer.o ./src/sct_8xx.o ./src/sct_pwm_8xx.o ./src/spi_8xx.o ./src/spim_8xx.o ./src/spis_8xx.o ./src/stopwatch_8xx.o ./src/swm_8xx.o ./src/syscon_8xx.o ./src/sysinit_8xx.o ./src/uart_8xx.o ./src/wkt_8xx.o ./src/wwdt_8xx.o   
+c:\nxp\LPCXpresso_8.2.2_650\lpcxpresso\tools\bin\arm-none-eabi-ar.exe: creating liblpc_chip_82x.a
+Finished building target: liblpc_chip_82x.a
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "liblpc_chip_82x.a" ; # arm-none-eabi-objdump -h -S "liblpc_chip_82x.a" >"liblpc_chip_82x.lss"
+   text	   data	    bss	    dec	    hex	filename
+    216	      0	      0	    216	     d8	acmp_8xx.o (ex liblpc_chip_82x.a)
+    148	      0	      0	    148	     94	adc_8xx.o (ex liblpc_chip_82x.a)
+     16	      0	      0	     16	     10	chip_8xx.o (ex liblpc_chip_82x.a)
+    508	      0	      0	    508	    1fc	clock_8xx.o (ex liblpc_chip_82x.a)
+    186	      0	      0	    186	     ba	crc_8xx.o (ex liblpc_chip_82x.a)
+      0	      0	      0	      0	      0	dma_8xx.o (ex liblpc_chip_82x.a)
+     44	      0	      0	     44	     2c	gpio_8xx.o (ex liblpc_chip_82x.a)
+    192	      0	      0	    192	     c0	i2c_common_8xx.o (ex liblpc_chip_82x.a)
+    294	      0	      0	    294	    126	i2cm_8xx.o (ex liblpc_chip_82x.a)
+    114	      0	      0	    114	     72	i2cs_8xx.o (ex liblpc_chip_82x.a)
+    334	      0	      0	    334	    14e	iap.o (ex liblpc_chip_82x.a)
+    196	      0	      0	    196	     c4	iocon_8xx.o (ex liblpc_chip_82x.a)
+     76	      0	      0	     76	     4c	pinint_8xx.o (ex liblpc_chip_82x.a)
+    146	      0	      0	    146	     92	pmu_8xx.o (ex liblpc_chip_82x.a)
+    352	      0	      0	    352	    160	ring_buffer.o (ex liblpc_chip_82x.a)
+    136	      0	      0	    136	     88	sct_8xx.o (ex liblpc_chip_82x.a)
+    168	      0	      0	    168	     a8	sct_pwm_8xx.o (ex liblpc_chip_82x.a)
+    628	      0	      0	    628	    274	spi_8xx.o (ex liblpc_chip_82x.a)
+    492	      0	      1	    493	    1ed	spim_8xx.o (ex liblpc_chip_82x.a)
+    272	      0	      1	    273	    111	spis_8xx.o (ex liblpc_chip_82x.a)
+    220	      0	     12	    232	     e8	stopwatch_8xx.o (ex liblpc_chip_82x.a)
+     80	      0	      0	     80	     50	swm_8xx.o (ex liblpc_chip_82x.a)
+    120	      0	      0	    120	     78	syscon_8xx.o (ex liblpc_chip_82x.a)
+    152	      0	      0	    152	     98	sysinit_8xx.o (ex liblpc_chip_82x.a)
+    510	      0	      0	    510	    1fe	uart_8xx.o (ex liblpc_chip_82x.a)
+     58	      0	      0	     58	     3a	wkt_8xx.o (ex liblpc_chip_82x.a)
+    104	      0	      0	    104	     68	wwdt_8xx.o (ex liblpc_chip_82x.a)
+ 
+18:06:13 **** Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+Building file: ../src/board.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/board.d" -MT"src/board.o" -MT"src/board.d" -o "src/board.o" "../src/board.c"
+../src/board.c:56:13: warning: 'Board_LED_Init' defined but not used [-Wunused-function]
+ static void Board_LED_Init(void)
+             ^
+Finished building: ../src/board.c
+ 
+Building file: ../src/board_sysinit.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/board_sysinit.d" -MT"src/board_sysinit.o" -MT"src/board_sysinit.d" -o "src/board_sysinit.o" "../src/board_sysinit.c"
+Finished building: ../src/board_sysinit.c
+ 
+Building target: liblpc_board_nxp_lpcxpresso_824.a
+Invoking: MCU Archiver
+arm-none-eabi-ar -r  "liblpc_board_nxp_lpcxpresso_824.a"  ./src/board.o ./src/board_sysinit.o   
+c:\nxp\LPCXpresso_8.2.2_650\lpcxpresso\tools\bin\arm-none-eabi-ar.exe: creating liblpc_board_nxp_lpcxpresso_824.a
+Finished building target: liblpc_board_nxp_lpcxpresso_824.a
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "liblpc_board_nxp_lpcxpresso_824.a" ; # arm-none-eabi-objdump -h -S "liblpc_board_nxp_lpcxpresso_824.a" >"liblpc_board_nxp_lpcxpresso_824.lss"
+   text	   data	    bss	    dec	    hex	filename
+    369	      0	      0	    369	    171	board.o (ex liblpc_board_nxp_lpcxpresso_824.a)
+     48	      0	      0	     48	     30	board_sysinit.o (ex liblpc_board_nxp_lpcxpresso_824.a)
+ 
+18:06:14 **** Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/MMA7455.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/MMA7455.d" -MT"src/MMA7455.o" -MT"src/MMA7455.d" -o "src/MMA7455.o" "../src/MMA7455.c"
+../src/MMA7455.c: In function 'Trio_MMA7455_init':
+../src/MMA7455.c:18:3: warning: implicit declaration of function 'i2c_write' [-Wimplicit-function-declaration]
+   i2c_write(MMA7455_I2CADDR, i2c_txBuffer, i2c_rxBuffer, 2, 0);
+   ^
+Finished building: ../src/MMA7455.c
+ 
+Building file: ../src/MMA8652.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/MMA8652.d" -MT"src/MMA8652.o" -MT"src/MMA8652.d" -o "src/MMA8652.o" "../src/MMA8652.c"
+Finished building: ../src/MMA8652.c
+ 
+Building file: ../src/T0_Project.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/T0_Project.d" -MT"src/T0_Project.o" -MT"src/T0_Project.d" -o "src/T0_Project.o" "../src/T0_Project.c"
+Finished building: ../src/T0_Project.c
+ 
+Building file: ../src/aeabi_romdiv_patch.s
+Invoking: MCU Assembler
+arm-none-eabi-gcc -c -x assembler-with-cpp -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -g3 -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -o "src/aeabi_romdiv_patch.o" "../src/aeabi_romdiv_patch.s"
+Finished building: ../src/aeabi_romdiv_patch.s
+ 
+Building file: ../src/bootloader.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/bootloader.d" -MT"src/bootloader.o" -MT"src/bootloader.d" -o "src/bootloader.o" "../src/bootloader.c"
+../src/bootloader.c: In function 'I2C1_IRQHandler':
+../src/bootloader.c:296:2: warning: implicit declaration of function 'I2C1_InterruptHandler' [-Wimplicit-function-declaration]
+  I2C1_InterruptHandler();
+  ^
+Finished building: ../src/bootloader.c
+ 
+Building file: ../src/bootloader_asm.s
+Invoking: MCU Assembler
+arm-none-eabi-gcc -c -x assembler-with-cpp -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -g3 -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -o "src/bootloader_asm.o" "../src/bootloader_asm.s"
+Finished building: ../src/bootloader_asm.s
+ 
+Building file: ../src/cr_startup_lpc82x.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/cr_startup_lpc82x.d" -MT"src/cr_startup_lpc82x.o" -MT"src/cr_startup_lpc82x.d" -o "src/cr_startup_lpc82x.o" "../src/cr_startup_lpc82x.c"
+Finished building: ../src/cr_startup_lpc82x.c
+ 
+Building file: ../src/crp.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/crp.d" -MT"src/crp.o" -MT"src/crp.d" -o "src/crp.o" "../src/crp.c"
+Finished building: ../src/crp.c
+ 
+Building file: ../src/gps.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gps.d" -MT"src/gps.o" -MT"src/gps.d" -o "src/gps.o" "../src/gps.c"
+../src/gps.c: In function 'ProcessGPSMessage':
+../src/gps.c:167:3: warning: enumeration value 'NMEA_TYPE_UNKNOWN' not handled in switch [-Wswitch]
+   switch(nmea_msg_t->type)
+   ^
+Finished building: ../src/gps.c
+ 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/i2c.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/i2c.d" -MT"src/i2c.o" -MT"src/i2c.d" -o "src/i2c.o" "../src/i2c.c"
+../src/i2c.c: In function 'sendI2CMaster':
+../src/i2c.c:78:26: warning: assignment makes integer from pointer without a cast [-Wint-conversion]
+  param.num_bytes_rec     = NULL;
+                          ^
+../src/i2c.c: In function 'readI2CMaster':
+../src/i2c.c:121:6: warning: unused variable 'index' [-Wunused-variable]
+  int index = 0;
+      ^
+Finished building: ../src/i2c.c
+ 
+Building file: ../src/messages.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/messages.d" -MT"src/messages.o" -MT"src/messages.d" -o "src/messages.o" "../src/messages.c"
+../src/messages.c: In function 'Trio_PrepareTMessageExtension':
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_PASSIVE' not handled in switch [-Wswitch]
+  switch(message_type) {
+  ^
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_PASSIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'IDLE_TIME_INDICATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'RFID_CARD_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CANBUS_DATA_READY' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'TEMP_SENSOR_DATA' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ANALOG_INPUT_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'GARMIN_NAVIGATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CELL_ID' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ROAMING_DATA' not handled in switch [-Wswitch]
+../src/messages.c:400:6: warning: unused variable 'i_batteryVoltage' [-Wunused-variable]
+  int i_batteryVoltage;
+      ^
+Finished building: ../src/messages.c
+ 
+Building file: ../src/mtb.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/mtb.d" -MT"src/mtb.o" -MT"src/mtb.d" -o "src/mtb.o" "../src/mtb.c"
+Finished building: ../src/mtb.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/spi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/spi.d" -MT"src/spi.o" -MT"src/spi.d" -o "src/spi.o" "../src/spi.c"
+../src/spi.c: In function 'AddOfflineDataToCache':
+../src/spi.c:796:10: warning: pointer targets in passing argument 1 of 'PRINT_K' differ in signedness [-Wpointer-sign]
+  PRINT_K(p_msgStart);
+          ^
+In file included from ../src/spi.c:6:0:
+../src/utils.h:13:6: note: expected 'const char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ void PRINT_K(const char *);
+      ^
+../src/spi.c: In function 'Get_CurrentReadSectorNumber':
+../src/spi.c:1090:12: warning: unused variable 'result' [-Wunused-variable]
+   uint32_t result;
+            ^
+../src/spi.c: At top level:
+../src/spi.c:130:13: warning: 'Init_SPI_PinMux' defined but not used [-Wunused-function]
+ static void Init_SPI_PinMux(void)
+             ^
+../src/spi.c:107:13: warning: 'b_flashHealtStatus' defined but not used [-Wunused-variable]
+ static bool b_flashHealtStatus = FALSE;
+             ^
+../src/spi.c: In function 'MMA7455_Read':
+../src/spi.c:484:2: warning: 'tempBuffer' is used uninitialized in this function [-Wuninitialized]
+  send_spi_data(LPC_SPIACCELPORT, flashTransferTXBuffer, 2, tempBuffer, 2);
+  ^
+Finished building: ../src/spi.c
+ 
+Building file: ../src/status.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/status.d" -MT"src/status.o" -MT"src/status.d" -o "src/status.o" "../src/status.c"
+Finished building: ../src/status.c
+ 
+Building file: ../src/sysinit.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/sysinit.d" -MT"src/sysinit.o" -MT"src/sysinit.d" -o "src/sysinit.o" "../src/sysinit.c"
+Finished building: ../src/sysinit.c
+ 
+Building file: ../src/timer.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/timer.d" -MT"src/timer.o" -MT"src/timer.d" -o "src/timer.o" "../src/timer.c"
+Finished building: ../src/timer.c
+ 
+Building file: ../src/utils.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/utils.d" -MT"src/utils.o" -MT"src/utils.d" -o "src/utils.o" "../src/utils.c"
+Finished building: ../src/utils.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2275ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2275ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31076	     28	  10090	  41194	   a0ea	T0.axf
+ 
+16:10:12 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+16:10:13 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+16:10:13 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/T0_Project.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/T0_Project.d" -MT"src/T0_Project.o" -MT"src/T0_Project.d" -o "src/T0_Project.o" "../src/T0_Project.c"
+Finished building: ../src/T0_Project.c
+ 
+Building file: ../src/gps.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gps.d" -MT"src/gps.o" -MT"src/gps.d" -o "src/gps.o" "../src/gps.c"
+../src/gps.c: In function 'ProcessGPSMessage':
+../src/gps.c:167:3: warning: enumeration value 'NMEA_TYPE_UNKNOWN' not handled in switch [-Wswitch]
+   switch(nmea_msg_t->type)
+   ^
+Finished building: ../src/gps.c
+ 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/messages.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/messages.d" -MT"src/messages.o" -MT"src/messages.d" -o "src/messages.o" "../src/messages.c"
+../src/messages.c: In function 'Trio_PrepareTMessageExtension':
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_PASSIVE' not handled in switch [-Wswitch]
+  switch(message_type) {
+  ^
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_PASSIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'IDLE_TIME_INDICATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'RFID_CARD_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CANBUS_DATA_READY' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'TEMP_SENSOR_DATA' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ANALOG_INPUT_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'GARMIN_NAVIGATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CELL_ID' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ROAMING_DATA' not handled in switch [-Wswitch]
+../src/messages.c:400:6: warning: unused variable 'i_batteryVoltage' [-Wunused-variable]
+  int i_batteryVoltage;
+      ^
+Finished building: ../src/messages.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/spi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/spi.d" -MT"src/spi.o" -MT"src/spi.d" -o "src/spi.o" "../src/spi.c"
+../src/spi.c: In function 'AddOfflineDataToCache':
+../src/spi.c:796:10: warning: pointer targets in passing argument 1 of 'PRINT_K' differ in signedness [-Wpointer-sign]
+  PRINT_K(p_msgStart);
+          ^
+In file included from ../src/spi.c:6:0:
+../src/utils.h:13:6: note: expected 'const char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ void PRINT_K(const char *);
+      ^
+../src/spi.c: In function 'Get_CurrentReadSectorNumber':
+../src/spi.c:1090:12: warning: unused variable 'result' [-Wunused-variable]
+   uint32_t result;
+            ^
+../src/spi.c: At top level:
+../src/spi.c:130:13: warning: 'Init_SPI_PinMux' defined but not used [-Wunused-function]
+ static void Init_SPI_PinMux(void)
+             ^
+../src/spi.c:107:13: warning: 'b_flashHealtStatus' defined but not used [-Wunused-variable]
+ static bool b_flashHealtStatus = FALSE;
+             ^
+../src/spi.c: In function 'MMA7455_Read':
+../src/spi.c:484:2: warning: 'tempBuffer' is used uninitialized in this function [-Wuninitialized]
+  send_spi_data(LPC_SPIACCELPORT, flashTransferTXBuffer, 2, tempBuffer, 2);
+  ^
+Finished building: ../src/spi.c
+ 
+Building file: ../src/status.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/status.d" -MT"src/status.o" -MT"src/status.d" -o "src/status.o" "../src/status.c"
+Finished building: ../src/status.c
+ 
+Building file: ../src/utils.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/utils.d" -MT"src/utils.o" -MT"src/utils.d" -o "src/utils.o" "../src/utils.c"
+Finished building: ../src/utils.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\R2276ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\R2276ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31076	     28	  10090	  41194	   a0ea	T0.axf
+ 
+10:21:01 **** Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+Building file: ../src/acmp_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/acmp_8xx.d" -MT"src/acmp_8xx.o" -MT"src/acmp_8xx.d" -o "src/acmp_8xx.o" "../src/acmp_8xx.c"
+Finished building: ../src/acmp_8xx.c
+ 
+Building file: ../src/adc_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/adc_8xx.d" -MT"src/adc_8xx.o" -MT"src/adc_8xx.d" -o "src/adc_8xx.o" "../src/adc_8xx.c"
+Finished building: ../src/adc_8xx.c
+ 
+Building file: ../src/chip_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/chip_8xx.d" -MT"src/chip_8xx.o" -MT"src/chip_8xx.d" -o "src/chip_8xx.o" "../src/chip_8xx.c"
+Finished building: ../src/chip_8xx.c
+ 
+Building file: ../src/clock_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/clock_8xx.d" -MT"src/clock_8xx.o" -MT"src/clock_8xx.d" -o "src/clock_8xx.o" "../src/clock_8xx.c"
+Finished building: ../src/clock_8xx.c
+ 
+Building file: ../src/crc_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/crc_8xx.d" -MT"src/crc_8xx.o" -MT"src/crc_8xx.d" -o "src/crc_8xx.o" "../src/crc_8xx.c"
+Finished building: ../src/crc_8xx.c
+ 
+Building file: ../src/dma_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/dma_8xx.d" -MT"src/dma_8xx.o" -MT"src/dma_8xx.d" -o "src/dma_8xx.o" "../src/dma_8xx.c"
+Finished building: ../src/dma_8xx.c
+ 
+Building file: ../src/gpio_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/gpio_8xx.d" -MT"src/gpio_8xx.o" -MT"src/gpio_8xx.d" -o "src/gpio_8xx.o" "../src/gpio_8xx.c"
+Finished building: ../src/gpio_8xx.c
+ 
+Building file: ../src/i2c_common_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2c_common_8xx.d" -MT"src/i2c_common_8xx.o" -MT"src/i2c_common_8xx.d" -o "src/i2c_common_8xx.o" "../src/i2c_common_8xx.c"
+Finished building: ../src/i2c_common_8xx.c
+ 
+Building file: ../src/i2cm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2cm_8xx.d" -MT"src/i2cm_8xx.o" -MT"src/i2cm_8xx.d" -o "src/i2cm_8xx.o" "../src/i2cm_8xx.c"
+Finished building: ../src/i2cm_8xx.c
+ 
+Building file: ../src/i2cs_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/i2cs_8xx.d" -MT"src/i2cs_8xx.o" -MT"src/i2cs_8xx.d" -o "src/i2cs_8xx.o" "../src/i2cs_8xx.c"
+Finished building: ../src/i2cs_8xx.c
+ 
+Building file: ../src/iap.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/iap.d" -MT"src/iap.o" -MT"src/iap.d" -o "src/iap.o" "../src/iap.c"
+Finished building: ../src/iap.c
+ 
+Building file: ../src/iocon_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/iocon_8xx.d" -MT"src/iocon_8xx.o" -MT"src/iocon_8xx.d" -o "src/iocon_8xx.o" "../src/iocon_8xx.c"
+Finished building: ../src/iocon_8xx.c
+ 
+Building file: ../src/pinint_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/pinint_8xx.d" -MT"src/pinint_8xx.o" -MT"src/pinint_8xx.d" -o "src/pinint_8xx.o" "../src/pinint_8xx.c"
+Finished building: ../src/pinint_8xx.c
+ 
+Building file: ../src/pmu_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/pmu_8xx.d" -MT"src/pmu_8xx.o" -MT"src/pmu_8xx.d" -o "src/pmu_8xx.o" "../src/pmu_8xx.c"
+Finished building: ../src/pmu_8xx.c
+ 
+Building file: ../src/ring_buffer.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/ring_buffer.d" -MT"src/ring_buffer.o" -MT"src/ring_buffer.d" -o "src/ring_buffer.o" "../src/ring_buffer.c"
+Finished building: ../src/ring_buffer.c
+ 
+Building file: ../src/sct_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sct_8xx.d" -MT"src/sct_8xx.o" -MT"src/sct_8xx.d" -o "src/sct_8xx.o" "../src/sct_8xx.c"
+Finished building: ../src/sct_8xx.c
+ 
+Building file: ../src/sct_pwm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sct_pwm_8xx.d" -MT"src/sct_pwm_8xx.o" -MT"src/sct_pwm_8xx.d" -o "src/sct_pwm_8xx.o" "../src/sct_pwm_8xx.c"
+Finished building: ../src/sct_pwm_8xx.c
+ 
+Building file: ../src/spi_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spi_8xx.d" -MT"src/spi_8xx.o" -MT"src/spi_8xx.d" -o "src/spi_8xx.o" "../src/spi_8xx.c"
+Finished building: ../src/spi_8xx.c
+ 
+Building file: ../src/spim_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spim_8xx.d" -MT"src/spim_8xx.o" -MT"src/spim_8xx.d" -o "src/spim_8xx.o" "../src/spim_8xx.c"
+Finished building: ../src/spim_8xx.c
+ 
+Building file: ../src/spis_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/spis_8xx.d" -MT"src/spis_8xx.o" -MT"src/spis_8xx.d" -o "src/spis_8xx.o" "../src/spis_8xx.c"
+Finished building: ../src/spis_8xx.c
+ 
+Building file: ../src/stopwatch_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/stopwatch_8xx.d" -MT"src/stopwatch_8xx.o" -MT"src/stopwatch_8xx.d" -o "src/stopwatch_8xx.o" "../src/stopwatch_8xx.c"
+Finished building: ../src/stopwatch_8xx.c
+ 
+Building file: ../src/swm_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/swm_8xx.d" -MT"src/swm_8xx.o" -MT"src/swm_8xx.d" -o "src/swm_8xx.o" "../src/swm_8xx.c"
+Finished building: ../src/swm_8xx.c
+ 
+Building file: ../src/syscon_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/syscon_8xx.d" -MT"src/syscon_8xx.o" -MT"src/syscon_8xx.d" -o "src/syscon_8xx.o" "../src/syscon_8xx.c"
+Finished building: ../src/syscon_8xx.c
+ 
+Building file: ../src/sysinit_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/sysinit_8xx.d" -MT"src/sysinit_8xx.o" -MT"src/sysinit_8xx.d" -o "src/sysinit_8xx.o" "../src/sysinit_8xx.c"
+Finished building: ../src/sysinit_8xx.c
+ 
+Building file: ../src/uart_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/uart_8xx.d" -MT"src/uart_8xx.o" -MT"src/uart_8xx.d" -o "src/uart_8xx.o" "../src/uart_8xx.c"
+Finished building: ../src/uart_8xx.c
+ 
+Building file: ../src/wkt_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/wkt_8xx.d" -MT"src/wkt_8xx.o" -MT"src/wkt_8xx.d" -o "src/wkt_8xx.o" "../src/wkt_8xx.c"
+Finished building: ../src/wkt_8xx.c
+ 
+Building file: ../src/wwdt_8xx.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/wwdt_8xx.d" -MT"src/wwdt_8xx.o" -MT"src/wwdt_8xx.d" -o "src/wwdt_8xx.o" "../src/wwdt_8xx.c"
+Finished building: ../src/wwdt_8xx.c
+ 
+Building target: liblpc_chip_82x.a
+Invoking: MCU Archiver
+arm-none-eabi-ar -r  "liblpc_chip_82x.a"  ./src/acmp_8xx.o ./src/adc_8xx.o ./src/chip_8xx.o ./src/clock_8xx.o ./src/crc_8xx.o ./src/dma_8xx.o ./src/gpio_8xx.o ./src/i2c_common_8xx.o ./src/i2cm_8xx.o ./src/i2cs_8xx.o ./src/iap.o ./src/iocon_8xx.o ./src/pinint_8xx.o ./src/pmu_8xx.o ./src/ring_buffer.o ./src/sct_8xx.o ./src/sct_pwm_8xx.o ./src/spi_8xx.o ./src/spim_8xx.o ./src/spis_8xx.o ./src/stopwatch_8xx.o ./src/swm_8xx.o ./src/syscon_8xx.o ./src/sysinit_8xx.o ./src/uart_8xx.o ./src/wkt_8xx.o ./src/wwdt_8xx.o   
+Finished building target: liblpc_chip_82x.a
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "liblpc_chip_82x.a" ; # arm-none-eabi-objdump -h -S "liblpc_chip_82x.a" >"liblpc_chip_82x.lss"
+   text	   data	    bss	    dec	    hex	filename
+    216	      0	      0	    216	     d8	acmp_8xx.o (ex liblpc_chip_82x.a)
+    148	      0	      0	    148	     94	adc_8xx.o (ex liblpc_chip_82x.a)
+     16	      0	      0	     16	     10	chip_8xx.o (ex liblpc_chip_82x.a)
+    508	      0	      0	    508	    1fc	clock_8xx.o (ex liblpc_chip_82x.a)
+    186	      0	      0	    186	     ba	crc_8xx.o (ex liblpc_chip_82x.a)
+      0	      0	      0	      0	      0	dma_8xx.o (ex liblpc_chip_82x.a)
+     44	      0	      0	     44	     2c	gpio_8xx.o (ex liblpc_chip_82x.a)
+    192	      0	      0	    192	     c0	i2c_common_8xx.o (ex liblpc_chip_82x.a)
+    294	      0	      0	    294	    126	i2cm_8xx.o (ex liblpc_chip_82x.a)
+    114	      0	      0	    114	     72	i2cs_8xx.o (ex liblpc_chip_82x.a)
+    334	      0	      0	    334	    14e	iap.o (ex liblpc_chip_82x.a)
+    196	      0	      0	    196	     c4	iocon_8xx.o (ex liblpc_chip_82x.a)
+     76	      0	      0	     76	     4c	pinint_8xx.o (ex liblpc_chip_82x.a)
+    146	      0	      0	    146	     92	pmu_8xx.o (ex liblpc_chip_82x.a)
+    352	      0	      0	    352	    160	ring_buffer.o (ex liblpc_chip_82x.a)
+    136	      0	      0	    136	     88	sct_8xx.o (ex liblpc_chip_82x.a)
+    168	      0	      0	    168	     a8	sct_pwm_8xx.o (ex liblpc_chip_82x.a)
+    628	      0	      0	    628	    274	spi_8xx.o (ex liblpc_chip_82x.a)
+    492	      0	      1	    493	    1ed	spim_8xx.o (ex liblpc_chip_82x.a)
+    272	      0	      1	    273	    111	spis_8xx.o (ex liblpc_chip_82x.a)
+    220	      0	     12	    232	     e8	stopwatch_8xx.o (ex liblpc_chip_82x.a)
+     80	      0	      0	     80	     50	swm_8xx.o (ex liblpc_chip_82x.a)
+    120	      0	      0	    120	     78	syscon_8xx.o (ex liblpc_chip_82x.a)
+    152	      0	      0	    152	     98	sysinit_8xx.o (ex liblpc_chip_82x.a)
+    510	      0	      0	    510	    1fe	uart_8xx.o (ex liblpc_chip_82x.a)
+     58	      0	      0	     58	     3a	wkt_8xx.o (ex liblpc_chip_82x.a)
+    104	      0	      0	    104	     68	wwdt_8xx.o (ex liblpc_chip_82x.a)
+ 
+10:21:07 **** Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+Building file: ../src/board.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/board.d" -MT"src/board.o" -MT"src/board.d" -o "src/board.o" "../src/board.c"
+../src/board.c:56:13: warning: 'Board_LED_Init' defined but not used [-Wunused-function]
+ static void Board_LED_Init(void)
+             ^
+Finished building: ../src/board.c
+ 
+Building file: ../src/board_sysinit.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -D__REDLIB__ -DDEBUG -D__CODE_RED -D__USE_LPCOPEN -DCORE_M0PLUS -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -specs=redlib.specs -MMD -MP -MF"src/board_sysinit.d" -MT"src/board_sysinit.o" -MT"src/board_sysinit.d" -o "src/board_sysinit.o" "../src/board_sysinit.c"
+Finished building: ../src/board_sysinit.c
+ 
+Building target: liblpc_board_nxp_lpcxpresso_824.a
+Invoking: MCU Archiver
+arm-none-eabi-ar -r  "liblpc_board_nxp_lpcxpresso_824.a"  ./src/board.o ./src/board_sysinit.o   
+Finished building target: liblpc_board_nxp_lpcxpresso_824.a
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size "liblpc_board_nxp_lpcxpresso_824.a" ; # arm-none-eabi-objdump -h -S "liblpc_board_nxp_lpcxpresso_824.a" >"liblpc_board_nxp_lpcxpresso_824.lss"
+   text	   data	    bss	    dec	    hex	filename
+    369	      0	      0	    369	    171	board.o (ex liblpc_board_nxp_lpcxpresso_824.a)
+     48	      0	      0	     48	     30	board_sysinit.o (ex liblpc_board_nxp_lpcxpresso_824.a)
+ 
+10:21:08 **** Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/MMA7455.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/MMA7455.d" -MT"src/MMA7455.o" -MT"src/MMA7455.d" -o "src/MMA7455.o" "../src/MMA7455.c"
+../src/MMA7455.c: In function 'Trio_MMA7455_init':
+../src/MMA7455.c:18:3: warning: implicit declaration of function 'i2c_write' [-Wimplicit-function-declaration]
+   i2c_write(MMA7455_I2CADDR, i2c_txBuffer, i2c_rxBuffer, 2, 0);
+   ^
+Finished building: ../src/MMA7455.c
+ 
+Building file: ../src/MMA8652.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/MMA8652.d" -MT"src/MMA8652.o" -MT"src/MMA8652.d" -o "src/MMA8652.o" "../src/MMA8652.c"
+Finished building: ../src/MMA8652.c
+ 
+Building file: ../src/T0_Project.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/T0_Project.d" -MT"src/T0_Project.o" -MT"src/T0_Project.d" -o "src/T0_Project.o" "../src/T0_Project.c"
+Finished building: ../src/T0_Project.c
+ 
+Building file: ../src/bootloader.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/bootloader.d" -MT"src/bootloader.o" -MT"src/bootloader.d" -o "src/bootloader.o" "../src/bootloader.c"
+../src/bootloader.c: In function 'I2C1_IRQHandler':
+../src/bootloader.c:296:2: warning: implicit declaration of function 'I2C1_InterruptHandler' [-Wimplicit-function-declaration]
+  I2C1_InterruptHandler();
+  ^
+Finished building: ../src/bootloader.c
+ 
+Building file: ../src/cr_startup_lpc82x.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/cr_startup_lpc82x.d" -MT"src/cr_startup_lpc82x.o" -MT"src/cr_startup_lpc82x.d" -o "src/cr_startup_lpc82x.o" "../src/cr_startup_lpc82x.c"
+Finished building: ../src/cr_startup_lpc82x.c
+ 
+Building file: ../src/gps.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gps.d" -MT"src/gps.o" -MT"src/gps.d" -o "src/gps.o" "../src/gps.c"
+../src/gps.c: In function 'ProcessGPSMessage':
+../src/gps.c:167:3: warning: enumeration value 'NMEA_TYPE_UNKNOWN' not handled in switch [-Wswitch]
+   switch(nmea_msg_t->type)
+   ^
+Finished building: ../src/gps.c
+ 
+Building file: ../src/gsm.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/gsm.d" -MT"src/gsm.o" -MT"src/gsm.d" -o "src/gsm.o" "../src/gsm.c"
+../src/gsm.c: In function 'ConnectedToServer':
+../src/gsm.c:458:26: warning: pointer targets in passing argument 1 of 'Get_GsmTcpBuffer' differ in signedness [-Wpointer-sign]
+      if(Get_GsmTcpBuffer(messageBuffer, MAX_T_MESSAGE_SIZE, onIdle) > 0){
+                          ^
+In file included from ../src/gsm.c:5:0:
+../src/gsm.h:124:10: note: expected 'uint8_t * {aka unsigned char *}' but argument is of type 'char *'
+ uint16_t Get_GsmTcpBuffer(uint8_t *buffer, uint16_t length, void (*callBackFunc)());
+          ^
+../src/gsm.c: In function 'Get_GsmTcpBuffer':
+../src/gsm.c:1444:40: warning: pointer targets in passing argument 1 of 'Get_TcpDataSegment' differ in signedness [-Wpointer-sign]
+   u16_segmentSize = Get_TcpDataSegment(buffer, length, callBackFunc);
+                                        ^
+../src/gsm.c:1377:10: note: expected 'char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ uint16_t Get_TcpDataSegment(char *buffer, uint16_t recvLength, void (*callback)())
+          ^
+Finished building: ../src/gsm.c
+ 
+Building file: ../src/i2c.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/i2c.d" -MT"src/i2c.o" -MT"src/i2c.d" -o "src/i2c.o" "../src/i2c.c"
+../src/i2c.c: In function 'sendI2CMaster':
+../src/i2c.c:78:26: warning: assignment makes integer from pointer without a cast [-Wint-conversion]
+  param.num_bytes_rec     = NULL;
+                          ^
+../src/i2c.c: In function 'readI2CMaster':
+../src/i2c.c:121:6: warning: unused variable 'index' [-Wunused-variable]
+  int index = 0;
+      ^
+Finished building: ../src/i2c.c
+ 
+Building file: ../src/messages.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/messages.d" -MT"src/messages.o" -MT"src/messages.d" -o "src/messages.o" "../src/messages.c"
+../src/messages.c: In function 'Trio_PrepareTMessageExtension':
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_PASSIVE' not handled in switch [-Wswitch]
+  switch(message_type) {
+  ^
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT1_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_PASSIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'DIGITAL_INPUT2_ACTIVE' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'IDLE_TIME_INDICATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'RFID_CARD_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CANBUS_DATA_READY' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'TEMP_SENSOR_DATA' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ANALOG_INPUT_READING' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'GARMIN_NAVIGATION' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'CELL_ID' not handled in switch [-Wswitch]
+../src/messages.c:405:2: warning: enumeration value 'ROAMING_DATA' not handled in switch [-Wswitch]
+../src/messages.c:400:6: warning: unused variable 'i_batteryVoltage' [-Wunused-variable]
+  int i_batteryVoltage;
+      ^
+Finished building: ../src/messages.c
+ 
+Building file: ../src/settings.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/settings.d" -MT"src/settings.o" -MT"src/settings.d" -o "src/settings.o" "../src/settings.c"
+Finished building: ../src/settings.c
+ 
+Building file: ../src/spi.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/spi.d" -MT"src/spi.o" -MT"src/spi.d" -o "src/spi.o" "../src/spi.c"
+../src/spi.c: In function 'AddOfflineDataToCache':
+../src/spi.c:796:10: warning: pointer targets in passing argument 1 of 'PRINT_K' differ in signedness [-Wpointer-sign]
+  PRINT_K(p_msgStart);
+          ^
+In file included from ../src/spi.c:6:0:
+../src/utils.h:13:6: note: expected 'const char *' but argument is of type 'uint8_t * {aka unsigned char *}'
+ void PRINT_K(const char *);
+      ^
+../src/spi.c: In function 'Get_CurrentReadSectorNumber':
+../src/spi.c:1090:12: warning: unused variable 'result' [-Wunused-variable]
+   uint32_t result;
+            ^
+../src/spi.c: At top level:
+../src/spi.c:130:13: warning: 'Init_SPI_PinMux' defined but not used [-Wunused-function]
+ static void Init_SPI_PinMux(void)
+             ^
+../src/spi.c:107:13: warning: 'b_flashHealtStatus' defined but not used [-Wunused-variable]
+ static bool b_flashHealtStatus = FALSE;
+             ^
+../src/spi.c: In function 'MMA7455_Read':
+../src/spi.c:484:2: warning: 'tempBuffer' is used uninitialized in this function [-Wuninitialized]
+  send_spi_data(LPC_SPIACCELPORT, flashTransferTXBuffer, 2, tempBuffer, 2);
+  ^
+Finished building: ../src/spi.c
+ 
+Building file: ../src/status.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/status.d" -MT"src/status.o" -MT"src/status.d" -o "src/status.o" "../src/status.c"
+Finished building: ../src/status.c
+ 
+Building file: ../src/sysinit.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/sysinit.d" -MT"src/sysinit.o" -MT"src/sysinit.d" -o "src/sysinit.o" "../src/sysinit.c"
+Finished building: ../src/sysinit.c
+ 
+Building file: ../src/timer.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/timer.d" -MT"src/timer.o" -MT"src/timer.d" -o "src/timer.o" "../src/timer.c"
+Finished building: ../src/timer.c
+ 
+Building file: ../src/utils.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/utils.d" -MT"src/utils.o" -MT"src/utils.d" -o "src/utils.o" "../src/utils.c"
+Finished building: ../src/utils.c
+ 
+Building file: ../src/xmodem1k.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/xmodem1k.d" -MT"src/xmodem1k.o" -MT"src/xmodem1k.d" -o "src/xmodem1k.o" "../src/xmodem1k.c"
+../src/xmodem1k.c: In function 'XModem1K_Client':
+../src/xmodem1k.c:259:21: warning: 'u16_trials' may be used uninitialized in this function [-Wmaybe-uninitialized]
+       if (u16_trials-- > 0) {
+                     ^
+../src/xmodem1k.c:236:14: warning: 'u16_crc' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      u16_crc <<= 8;
+              ^
+Finished building: ../src/xmodem1k.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31076	     28	  10090	  41194	   a0ea	T0.axf
+ 
+10:27:08 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+10:27:08 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+10:27:09 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+10:30:02 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+10:30:03 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+10:30:03 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+11:04:00 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+11:04:00 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+11:04:01 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+make: Nothing to be done for `all'.
+13:15:08 **** Incremental Build of configuration Debug for project lpc_chip_82x ****
+make -r all 
+make: Nothing to be done for `all'.
+13:15:09 **** Incremental Build of configuration Debug for project lpc_board_nxp_lpcxpresso_824 ****
+make -r all 
+make: Nothing to be done for `all'.
+13:15:09 **** Incremental Build of configuration Debug for project T0 ****
+make -r all 
+Building file: ../src/cr_startup_lpc82x.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M0PLUS -D__MTB_DISABLE -D__MTB_BUFFER_SIZE=256 -D__USE_ROMDIVIDE -D__USE_LPCOPEN -D__LPC82X__ -D__REDLIB__ -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\T0\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\inc" -I"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\inc" -Os -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -flto -ffat-lto-objects -mcpu=cortex-m0 -mthumb -D__REDLIB__ -specs=redlib.specs -MMD -MP -MF"src/cr_startup_lpc82x.d" -MT"src/cr_startup_lpc82x.o" -MT"src/cr_startup_lpc82x.d" -o "src/cr_startup_lpc82x.o" "../src/cr_startup_lpc82x.c"
+Finished building: ../src/cr_startup_lpc82x.c
+ 
+Building target: T0.axf
+Invoking: MCU Linker
+arm-none-eabi-gcc -nostdlib -L"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_board_nxp_lpcxpresso_824\Debug" -L"C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\Debug" -Xlinker -Map="T0.map" -Xlinker --gc-sections -mcpu=cortex-m0 -mthumb -T Trio_Custom.ld -L "C:\Users\mkurus\Desktop\backup\T0\R2277ts\lpc_chip_82x\Debug" -o "T0.axf"  ./src/MMA7455.o ./src/MMA8652.o ./src/T0_Project.o ./src/aeabi_romdiv_patch.o ./src/bootloader.o ./src/bootloader_asm.o ./src/cr_startup_lpc82x.o ./src/crp.o ./src/gps.o ./src/gsm.o ./src/i2c.o ./src/messages.o ./src/mtb.o ./src/settings.o ./src/spi.o ./src/status.o ./src/sysinit.o ./src/timer.o ./src/utils.o ./src/xmodem1k.o   -llpc_board_nxp_lpcxpresso_824 -llpc_chip_82x
+Finished building target: T0.axf
+ 
+make --no-print-directory post-build
+Performing post-build steps
+arm-none-eabi-size T0.axf ; arm-none-eabi-objdump -S T0.axf >T0.lss ; arm-none-eabi-objcopy -O ihex T0.axf T0.hex ; arm-none-eabi-objcopy -O binary T0.axf T0.bin
+   text	   data	    bss	    dec	    hex	filename
+  31076	     28	  10090	  41194	   a0ea	T0.axf
+ 

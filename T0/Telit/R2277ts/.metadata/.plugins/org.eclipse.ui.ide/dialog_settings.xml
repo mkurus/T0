@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<list key="installedFeatures">
+		<item value="com.crt.lpcxpresso.feature:8.2.0.201607221326"/>
+		<item value="org.eclipse.cdt.debug.gdbjtag:8.8.1.201602051005"/>
+		<item value="org.eclipse.cdt.gdb:8.8.1.201602051005"/>
+		<item value="org.eclipse.cdt:8.8.1.201602051005"/>
+		<item value="org.eclipse.cvs:1.4.201.v20160212-1500"/>
+		<item value="org.eclipse.draw2d:3.10.1.201508170204"/>
+		<item value="org.eclipse.emf.common:2.11.1.v20160208-0816"/>
+		<item value="org.eclipse.emf.ecore:2.11.2.v20160208-0816"/>
+		<item value="org.eclipse.gef:3.10.1.201508170204"/>
+		<item value="org.eclipse.help:2.1.2.v20160212-1500"/>
+		<item value="org.eclipse.platform:4.5.2.v20160212-1500"/>
+		<item value="org.eclipse.rcp:4.5.2.v20160212-1500"/>
+	</list>
+	<section name="CleanDialogSettings">
+		<item value="500" key="DIALOG_WIDTH"/>
+		<item value="true" key="BUILD_ALL"/>
+		<item value="false" key="TOGGLE_SELECTED"/>
+		<item value="441" key="DIALOG_HEIGHT"/>
+		<item value="true" key="BUILD_NOW"/>
+		<item value="199" key="DIALOG_Y_ORIGIN"/>
+		<item value="1420" key="DIALOG_X_ORIGIN"/>
+	</section>
+	<section name="ExternalProjectImportWizard">
+	</section>
+	<section name="WORKBENCH_SETTINGS">
+		<list key="ENABLED_TRANSFERS">
+		</list>
+	</section>
+	<section name="org.eclipse.ui.internal.ide.dialogs.ProjectContentsLocationArea">
+		<item value="C:\Users\admin\Desktop\noromdiv" key="OUTSIDE_LOCATION"/>
+	</section>
+	<section name="NewWizardAction">
+		<item value="com.crt.quickstart.new.CProjectWizard" key="NewWizardSelectionPage.STORE_SELECTED_ID"/>
+		<list key="NewWizardSelectionPage.STORE_EXPANDED_CATEGORIES_ID">
+			<item value="org.eclipse.cdt.ui.newCWizards"/>
+		</list>
+	</section>
+	<section name="ChooseWorkspaceDialogSettings">
+		<item value="197" key="DIALOG_Y_ORIGIN"/>
+		<item value="202" key="DIALOG_X_ORIGIN"/>
+	</section>
+	<section name="BasicNewProjectResourceWizard">
+	</section>
+	<section name="SaveAsDialogSettings">
+		<item value="525" key="DIALOG_WIDTH"/>
+		<item value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI" key="DIALOG_FONT_NAME"/>
+		<item value="580" key="DIALOG_HEIGHT"/>
+		<item value="38" key="DIALOG_Y_ORIGIN"/>
+		<item value="514" key="DIALOG_X_ORIGIN"/>
+	</section>
+</section>

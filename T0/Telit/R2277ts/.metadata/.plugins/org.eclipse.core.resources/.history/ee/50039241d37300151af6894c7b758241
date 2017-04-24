@@ -1,0 +1,152 @@
+/*
+ * utils.c
+ *
+ *  Created on: 31 Tem 2015
+ *      Author: admin
+ */
+#include "board.h"
+#include "chip.h"
+#include "utils.h"
+#include <string.h>
+
+#define DEBUG_UART         	 	 LPC_USART0
+#define DEBUG_BAUD_RATE   		 115200
+#define DEBUG_IRQ_SELECTION 	 UART0_IRQn
+#define DEBUG_UART_ISR_HANDLER 	 UART0_IRQHandler
+
+/* Transmit and receive ring buffer sizes */
+#define DEBUG_UART_SRB_SIZE 512 /* Send */
+#define DEBUG_UART_RRB_SIZE 1	 /* Receive */
+
+static uint8_t debug_rxbuff[DEBUG_UART_RRB_SIZE];
+static uint8_t debug_txbuff[DEBUG_UART_SRB_SIZE];
+
+STATIC RINGBUFF_T debug_txring,debug_rxring;
+
+#define T0_LEDNUM       2
+uint8_t T0_ledBits[]= {8,9};
+void Init_DEBUG_USART();
+
+/***********************************************************/
+/* Converts given value @a val into a hexadecimal string
+ * and stores the result to @a dest with leading zeros
+ * RETURN: Number of hexdigits excluding leading zeros
+ */
+int Hex2Str(char *dest, uint32_t val)
+{
+	int i, ret = 0;
+	for (i = 0; i < sizeof(val) * 2; i ++) {
+		int idx = val & 0xF;
+		dest[7 - i] = "0123456789ABCDEF"[idx];
+		val >>= 4;
+		if (idx)
+			ret = i;
+	}
+	return ret + 1;
+}
+/************************************************************/
+/* Prints a hexadecimal value with given string in front */
+/* Using printf might cause text section overflow */
+void Print_Val(const char *str, uint32_t val)
+{
+	char buf[9];
+	int ret;
+	buf[8] = 0;
+	PRINT_K(str);
+	ret = Hex2Str(buf, val);
+	PRINT_K(&buf[8 - ret]);
+}
+
+void PRINT_K(const char *msg)
+{
+	Chip_UART_SendRB(DEBUG_UART, &debug_txring, msg, strlen(msg));
+	Chip_UART_SendRB(DEBUG_UART, &debug_txring, "\r\n", 2);
+}
+void Init_DEBUG_USART()
+{
+//	Board_UART_Init(DEBUG_UART);
+
+	Chip_UART_Init(DEBUG_UART);
+	Chip_UART_ConfigData(DEBUG_UART, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1);
+	Chip_Clock_SetUSARTNBaseClockRate((DEBUG_BAUD_RATE * 16), true);
+	Chip_UART_SetBaud(DEBUG_UART, DEBUG_BAUD_RATE);
+	Chip_UART_Enable(DEBUG_UART);
+	/* Enable UART Transmit */
+	Chip_UART_TXEnable(DEBUG_UART);
+	RingBuffer_Init(&debug_txring, debug_txbuff, 1, DEBUG_UART_SRB_SIZE);
+	RingBuffer_Init(&debug_rxring, debug_rxbuff, 1, DEBUG_UART_RRB_SIZE);
+	//Chip_UART_IntEnable(DEBUG_UART, UART_INTEN_RXRDY);
+
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(DEBUG_IRQ_SELECTION, 1);
+	NVIC_EnableIRQ(DEBUG_IRQ_SELECTION);
+}
+/*************************************************************/
+void DEBUG_UART_ISR_HANDLER(void)
+{
+	/* Want to handle any errors? Do it here. */
+
+	/* Use default ring buffer handler. Override this with your own
+	   code if you need more capability. */
+	Chip_UART_IRQRBHandler(DEBUG_UART, &debug_rxring, &debug_txring);
+}
+/**************************************************************/
+/* Initialize the LEDs on the NXP LPC824 LPCXpresso Board */
+void Board_LED_Init(void)
+{
+	int i;
+
+	for (i = 0; i < T0_LEDNUM; i++) {
+		Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, T0_ledBits[i]);
+		Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, T0_ledBits[i], true);
+	}
+}
+/* Toggles the current state of a board LED */
+void Board_LED_Toggle(uint8_t LEDNumber)
+{
+	if (LEDNumber < T0_LEDNUM) {
+		Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, 0, T0_ledBits[LEDNumber]);
+	}
+}
+/*********************************************************************/
+//                                      16   12   5
+// this is the CCITT CRC 16 polynomial X  + X  + X  + 1.
+// This works out to be 0x1021, but the way the algorithm works
+// lets us use 0x8408 (the reverse of the bit pattern).  The high
+// bit is always assumed to be set, thus we only use 16 bits to
+// represent the 17 bit value.
+//********************************************************************/
+#define     POLY       0x8408
+
+uint16_t crc16(char *data_p, uint16_t length)
+{
+      uint8_t i;
+      uint16_t data;
+      uint16_t crc = 0xffff;
+
+      if (length == 0)
+            return (~crc);
+
+      do{
+            for (i = 0, data=(uint16_t)0xff & *data_p++; i < 8; i++, data >>= 1){
+                  if ((crc & 0x0001) ^ (data & 0x0001))
+                        crc = (crc >> 1) ^ POLY;
+                  else  crc >>= 1;
+            }
+      } while (--length);
+
+      crc = ~crc;
+      data = crc;
+      crc = (crc << 8) | (data >> 8 & 0xff);
+
+      return (crc);
+}
+
+inline void SetBit(uint32_t *x, uint32_t bitNum) {
+    *x |= (1L << bitNum);
+}
+
+inline void ResetBit(uint32_t *x, uint32_t bitNum) {
+    *x &= ~(1L << bitNum);
+}
+

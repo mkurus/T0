@@ -1,0 +1,580 @@
+/*
+ * Settings.c
+
+ *
+ *  Created on: 30 Tem 2015
+ *      Author: admin
+ */
+
+#include "board.h"
+#include "settings.h"
+#include "spi.h"
+#include "gsm.h"
+#include "utils.h"
+#include "sst25.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+COMMAND_TYPE_T Get_ConfigurationCommand(char *buffer);
+void Get_ConfigurationParameter(char * const, char *, char *);
+
+int BeginEchoPacket(char *buffer, COMMAND_TYPE_T command);
+int CloseEchoPacket(char *buffer);
+int AddStringToEchoPacket(char *buffer, char *strToAdd);
+
+
+/* callback functions for flash write operations*/
+uint8_t update_server_and_port_setting(char *const buffer);
+uint8_t update_message_period_setting(char *const buffer);
+uint8_t update_roaming_setting(char *const buffer);
+uint8_t update_sms_act_setting(char *const buffer);
+uint8_t update_speed_limit_setting(char *const buffer);
+uint8_t update_engine_blockage_setting(char *const buffer);
+uint8_t update_km_counter_setting(char *const buffer);
+uint8_t update_device_id(char *const buffer);
+uint8_t reset_device(char *const buffer);
+uint8_t request_device_status(char *const buffer);
+uint8_t uncontrolled_engine_blockage(char *const buffer);
+uint8_t location_request(char*const buffer);
+uint8_t update_apn_setting(char *const buffer);
+uint8_t update_password(char *const buffer);
+
+
+FLASH_SETTINGS_T flash_settings;
+ECHO_PACKET_T echo_packet;
+
+#define  FIRST_FLASH_SETTINGS_ADDRESS           (250 * SST25_SECTOR_SIZE)
+#define  SECOND_FLASH_SETTINGS_ADDRESS          (251 * SST25_SECTOR_SIZE)
+#define  VALID_SETTINGS_PAGE_SIGN_ADDR  		(249 * 4096)
+
+#define VALID_SETTINGS_SIGN            0xAA55AA55
+
+/*************************************************************************/
+SETTING_INFO_T settings_info[] =
+{
+	{ SERVER_AND_PORT_SETTING,       update_server_and_port_setting },
+    { MESSAGE_PERIOD_SETTING,        update_message_period_setting },
+	{ ROAMING_ACTIVATION,            update_roaming_setting },
+	{ SMS_ACTIVATION,                update_sms_act_setting },
+	{ SPEED_LIMIT_SETTING,           update_speed_limit_setting },
+	{ ENGINE_BLOCKAGE_SETTING,       update_engine_blockage_setting},
+	{ KM_COUNTER,                    update_km_counter_setting},
+	{ DEVICE_RESET,                  reset_device },
+	{ DEVICE_ID_SETTING,             update_device_id },
+	{ DEVICE_STATUS_REQUEST,         request_device_status },
+	{ LOCATION_REQUEST,              location_request },
+	{ APN_SETTING,                   update_apn_setting },
+	{ CHANGE_PASSWORD,               update_password }
+};
+/*********************************************************************************/
+uint8_t ParseConfigurationString(char *const buffer)
+{
+	COMMAND_TYPE_T command;
+	uint8_t result = 0;
+	uint32_t i;
+
+	command = Get_ConfigurationCommand(buffer);
+	if(command > 0){
+		for(i = 0; i < sizeof(settings_info) / sizeof(settings_info[0]); i++ ){
+			if(command == settings_info[i].command){
+				result = settings_info[i].update_callback(buffer);
+				break;
+			}
+		}
+	}
+	return result;
+}
+/***********************************************************************/
+COMMAND_TYPE_T Get_ConfigurationCommand(char *buffer)
+{
+	 char *pTemp;
+
+	 pTemp = strtok (buffer,";");
+	 if(pTemp != NULL){
+		 PRINT_K(buffer);
+		 return (COMMAND_TYPE_T)atoi(buffer);
+	 }
+	 else
+		 return 0;
+}
+/************************************************************************/
+void Get_ConfigurationParameter(char * const in_buffer, char *out_buffer, char *seperator)
+{
+	char *pTemp;
+	pTemp = strtok(NULL, seperator);
+	strcpy(out_buffer, pTemp);
+}
+/************************************************************************/
+uint8_t update_server_and_port_setting(char *const buffer)
+{
+	char transactionID[16];
+	char *pBuf;
+
+	/* extract server ip address*/
+	Get_ConfigurationParameter(buffer, flash_settings.server_ip, ";");
+	/* extract port number*/
+	Get_ConfigurationParameter(buffer, flash_settings.server_port, ";");
+	/* extract transaction id*/
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+
+	Update_Settings();
+
+    pBuf = echo_packet.data;
+
+	pBuf += BeginEchoPacket(pBuf, SERVER_AND_PORT_SETTING);
+	pBuf += AddStringToEchoPacket(pBuf, flash_settings.server_ip);
+	pBuf += AddStringToEchoPacket(pBuf, flash_settings.server_port);
+	pBuf += AddStringToEchoPacket(pBuf, transactionID);
+	pBuf += CloseEchoPacket(pBuf);
+
+	echo_packet.dataLen = strlen(echo_packet.data);
+	return 3;
+}
+/*************************************************************************/
+uint8_t update_message_period_setting(char *const buffer)
+{
+	char temp[16];
+	char transactionID[16];
+	char *pBuf;
+	uint8_t result = 0;
+
+	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, temp, ";");
+
+	if(strcmp(temp, "0") == 0) {
+		Get_ConfigurationParameter(buffer, temp, ";");
+		flash_settings.msg_period_not_roaming_ignited = atoi(temp);
+		Get_ConfigurationParameter(buffer, temp, ";");
+		flash_settings.msg_period_not_roaming_not_ignited = atoi(temp);
+		/* extract transaction id*/
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, MESSAGE_PERIOD_SETTING);
+		pBuf += AddStringToEchoPacket(pBuf, "0");
+		itoa(flash_settings.msg_period_not_roaming_ignited, temp, 10);
+		pBuf += AddStringToEchoPacket(pBuf, temp);
+		itoa(flash_settings.msg_period_not_roaming_not_ignited, temp, 10);
+		pBuf += AddStringToEchoPacket(pBuf, temp);
+		result = 3;
+	}
+	else if(strcmp(temp, "1") == 0) {
+		Get_ConfigurationParameter(buffer, temp, ";");
+		flash_settings.msg_period_roaming_ignited = atoi(temp);
+		Get_ConfigurationParameter(buffer, temp, ";");
+		flash_settings.msg_period_roaming_not_ignited = atoi(temp);
+		/* extract transaction id*/
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, MESSAGE_PERIOD_SETTING);
+		pBuf += AddStringToEchoPacket(pBuf, "1");
+		itoa(flash_settings.msg_period_roaming_ignited, temp, 10);
+		pBuf += AddStringToEchoPacket(pBuf, temp);
+		itoa(flash_settings.msg_period_roaming_not_ignited, temp, 10);
+		pBuf += AddStringToEchoPacket(pBuf, temp);
+		result = 3;
+	}
+	if(result == 3){
+		pBuf += AddStringToEchoPacket(pBuf, transactionID);
+		pBuf += CloseEchoPacket(pBuf);
+		echo_packet.dataLen = strlen(echo_packet.data);
+	}
+	echo_packet.dataLen = strlen(echo_packet.data);
+	return 3;
+}
+/***********************************************************************/
+uint8_t update_roaming_setting(char * const buffer)
+{
+	char temp[2];
+	char transactionID[16];
+	char *pBuf;
+	uint8_t result = 0;
+
+	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, temp, ";");
+	PRINT_K("Updating roaming settings...");
+
+	if(strcmp(temp, "0") == 0){
+		flash_settings.roaming_activation = FALSE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, ROAMING_ACTIVATION);
+		pBuf += AddStringToEchoPacket(pBuf, "0");
+		result = 3;
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.roaming_activation = TRUE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, ROAMING_ACTIVATION);
+		pBuf += AddStringToEchoPacket(pBuf, "1");
+		result = 3;
+	}
+	if(result == 3){
+		pBuf += AddStringToEchoPacket(pBuf, transactionID);
+		pBuf += CloseEchoPacket(pBuf);
+		echo_packet.dataLen = strlen(echo_packet.data);
+	}
+	return result;
+}
+/****************************************************************/
+uint8_t update_sms_act_setting(char * const buffer)
+{
+	char temp[2];
+	char transactionID[16];
+
+	PRINT_K("Updating sms settings...");
+
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "0") == 0){
+		flash_settings.sms_activation = FALSE;
+		Update_Settings();
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.sms_activation = TRUE;
+		Update_Settings();
+	}
+	return 0;
+}
+/***************************************************************/
+uint8_t update_speed_limit_setting(char * const buffer)
+{
+	uint16_t u16_speedLimit;
+	uint16_t u16_duration;
+	char transactionID[16];
+	char temp[8];
+	char *pBuf;
+
+	/* extract speed limit*/
+	Get_ConfigurationParameter(buffer, temp, ";");
+	u16_speedLimit = atoi(temp);
+	flash_settings.speed_limit = u16_speedLimit;
+
+    /* extract speed limit violation duration */
+	Get_ConfigurationParameter(buffer, temp, ";");
+	u16_duration = atoi(temp);
+	flash_settings.speed_duration = u16_duration;
+
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+
+	Update_Settings();
+	pBuf = echo_packet.data;
+
+	pBuf += BeginEchoPacket(pBuf, SPEED_LIMIT_SETTING);
+	itoa(flash_settings.speed_limit, temp, 10);
+	pBuf += AddStringToEchoPacket(pBuf, temp);
+	itoa(flash_settings.speed_duration, temp, 10);
+	pBuf += AddStringToEchoPacket(pBuf, temp);
+
+	pBuf += AddStringToEchoPacket(pBuf, transactionID);
+	pBuf += CloseEchoPacket(pBuf);
+
+	echo_packet.dataLen = strlen(echo_packet.data);
+	return 3;
+}
+/*******************************************************************/
+uint8_t update_engine_blockage_setting(char * const buffer)
+{
+	char temp[2];
+	char transactionID[16];
+	char *pBuf;
+	uint8_t result = 0;
+
+	pBuf = echo_packet.data;
+
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "0") == 0){
+		flash_settings.engine_blockage = FALSE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, ENGINE_BLOCKAGE_SETTING);
+		pBuf += AddStringToEchoPacket(pBuf, "0");
+		result = 3;
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.engine_blockage = TRUE;
+		Get_ConfigurationParameter(buffer, transactionID, "!");
+		Update_Settings();
+
+		pBuf += BeginEchoPacket(pBuf, ENGINE_BLOCKAGE_SETTING);
+		pBuf += AddStringToEchoPacket(pBuf, "1");
+		result = 3;
+	}
+	if(result == 3){
+		pBuf += AddStringToEchoPacket(pBuf, transactionID);
+		pBuf += CloseEchoPacket(pBuf);
+		echo_packet.dataLen = strlen(echo_packet.data);
+	}
+	return result;
+}
+/*******************************************************************/
+uint8_t update_km_counter_setting(char * const buffer)
+{
+	char temp[128];
+	char transactionID[16];
+	char *pBuf;
+
+	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, temp, ";");
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+	flash_settings.flash_mileage = atol(temp) / 10000;
+	Update_Settings();
+
+	pBuf += BeginEchoPacket(pBuf, KM_COUNTER);
+	itoa(flash_settings.flash_mileage, temp, 10);
+	strcat(temp,"0000");
+	pBuf += AddStringToEchoPacket(pBuf, temp);
+	pBuf += AddStringToEchoPacket(pBuf, transactionID);
+	pBuf += CloseEchoPacket(pBuf);
+
+	echo_packet.dataLen = strlen(echo_packet.data);
+	return 3;
+}
+/*******************************************************************/
+uint8_t reset_device(char * const buffer)
+{
+	char temp[2];
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "1") == 0)
+		NVIC_SystemReset();
+	return 0;
+}
+/*******************************************************************/
+uint8_t update_device_id(char * const buffer)
+{
+	uint8_t i;
+	char transactionID[16];
+	char *pBuf;
+
+
+	Get_ConfigurationParameter(buffer, flash_settings.device_id, ";");
+	for(i= 0; i< sizeof(flash_settings.device_id)- 1; i++){
+		if(!isdigit(flash_settings.device_id[i])){
+			return 0;
+		}
+	}
+	pBuf = echo_packet.data;
+	Get_ConfigurationParameter(buffer, transactionID, "!");
+	Update_Settings();
+
+	pBuf += BeginEchoPacket(pBuf, DEVICE_ID_SETTING);
+	pBuf += AddStringToEchoPacket(pBuf, flash_settings.device_id);
+	pBuf += AddStringToEchoPacket(pBuf, transactionID);
+	pBuf += CloseEchoPacket(pBuf);
+
+	echo_packet.dataLen = strlen(echo_packet.data);
+	return 3;
+
+}
+/*********************************************************************/
+uint8_t request_device_status(char *const buffer)
+{
+	char temp[2];
+
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "1") == 0){
+		PRINT_K("Sending device status...");
+		return 2;
+	}
+	else
+		return 0;
+
+}
+uint8_t uncontrolled_engine_blockage(char *const buffer)
+{
+	char temp[2];
+
+	PRINT_K("Uncontrolled engine blockage...");
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "0") == 0){
+		flash_settings.uncontrolled_blockage = FALSE;
+		Update_Settings();
+	}
+	else if(strcmp(temp, "1") == 0){
+		flash_settings.uncontrolled_blockage = TRUE;
+		Update_Settings();
+	}
+	return 0;
+}
+/********************************************************************/
+uint8_t location_request(char *const buffer)
+{
+	char temp[2];
+	PRINT_K("Location request...");
+	Get_ConfigurationParameter(buffer, temp, ";");
+	if(strcmp(temp, "1") == 0)
+		return 1;
+	else
+		return 0;
+}
+/********************************************************************/
+uint8_t update_apn_setting(char *const buffer)
+{
+	PRINT_K("Updating apn settings...");
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apn, ";");
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apnusername, ";");
+	Get_ConfigurationParameter(buffer, flash_settings.flash_apnpassword, ";");
+	Update_Settings();
+	return 0;
+}
+/********************************************************************/
+uint8_t update_password(char *const buffer)
+{
+	PRINT_K("Updating password...");
+	Get_ConfigurationParameter(buffer, flash_settings.password, ";");
+	Update_Settings();
+	return 0;
+}
+/********************************************************************/
+void Update_Settings()
+{
+	char *pFlashSettings;
+
+	pFlashSettings = (char *)&flash_settings;
+
+	SST25_EraseSector(FLASH_SETTINGS_ADDRESS / SST25_SECTOR_SIZE);
+	SST25_WriteArray(pFlashSettings, sizeof(flash_settings), FLASH_SETTINGS_ADDRESS);
+	Load_Settings();   /* reload updated settings from FLASH to RAM*/
+	PRINT_K("***SETTINGS UPDATED***");
+}
+void Load_Settings()
+{
+	uint32_t temp1;
+	uint32_t temp2;
+	uint32_t u32_validSign;
+	char buffer[10];
+
+	/* check if first 4 bytes of flash regions is empty */
+	SST25_Read(FIRST_FLASH_SETTINGS_ADDRESS, 4, (char *)&temp1);
+	SST25_Read(SECOND_FLASH_SETTINGS_ADDRESS, 4, (char *)&temp2);
+
+	/* This section is only active in production programming */
+	if((temp1 == 0xFFFFFFFF) && (temp2 == 0xFFFFFFFF) ){
+		PRINT_K("***** WRITING FACTORY SETTINGS TO FLASH ********");
+		strcpy(flash_settings.flash_apn, "triomobil_apn");
+	    strcpy(flash_settings.flash_apnpassword, "apnpassword");
+	    strcpy(flash_settings.flash_apnusername, "apnusername");
+		strcpy(flash_settings.device_id, "1234567890ABCDE");
+		strcpy(flash_settings.server_ip, "213.14.184.87");
+		strcpy(flash_settings.server_port, "1555");
+		strcpy(flash_settings.password, "password");
+		flash_settings.uncontrolled_blockage = FALSE;
+		flash_settings.engine_blockage = FALSE;
+		flash_settings.sms_activation = FALSE;
+		flash_settings.roaming_activation = FALSE;
+		flash_settings.flash_mileage = 500;
+		flash_settings.speed_limit = 100;
+		flash_settings.speed_duration = 10;
+		flash_settings.msg_period_not_roaming_ignited = 1;
+		flash_settings.msg_period_not_roaming_not_ignited = 2;
+		flash_settings.msg_period_roaming_ignited= 3;
+		flash_settings.msg_period_roaming_not_ignited = 4;
+
+		SST25_WriteArray((char *)&flash_settings, sizeof(flash_settings), FIRST_FLASH_SETTINGS_ADDRESS);
+		SST25_WriteArray((char *)&flash_settings, sizeof(flash_settings), SECOND_FLASH_SETTINGS_ADDRESS);
+		u32_validSign = VALID_SETTINGS_SIGN;
+		SST25_WriteArray((char *)&u32_validSign, 4, VALID_SETTINGS_PAGE_SIGN_ADDR);
+	}
+
+	SST25_Read(VALID_SETTINGS_PAGE_SIGN_ADDR, 4, (char *)&u32_validSign);
+	if(u32_validSign == VALID_SETTINGS_SIGN){
+		PRINT_K("Loading settings from page 250");
+		SST25_Read(FIRST_FLASH_SETTINGS_ADDRESS, sizeof(flash_settings), (char *)&flash_settings);
+
+	}
+	else{
+		PRINT_K("Loading settings from page 251");
+		SST25_Read(SECOND_FLASH_SETTINGS_ADDRESS, sizeof(flash_settings), (char *)&flash_settings);
+	}
+
+		 PRINT_K(flash_settings.flash_apn);
+		 PRINT_K(flash_settings.flash_apnpassword);
+		 PRINT_K(flash_settings.flash_apnusername);
+		 PRINT_K(flash_settings.device_id);
+		 PRINT_K(flash_settings.server_ip);
+		 PRINT_K(flash_settings.server_port);
+		 PRINT_K(flash_settings.password);
+
+		 itoa(flash_settings.uncontrolled_blockage, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.engine_blockage, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.sms_activation, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.roaming_activation , buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.flash_mileage, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.speed_limit, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.speed_duration, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.msg_period_not_roaming_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.msg_period_not_roaming_not_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.msg_period_roaming_ignited, buffer ,10);
+		 PRINT_K(buffer);
+		 itoa(flash_settings.msg_period_roaming_not_ignited, buffer ,10);
+		 PRINT_K(buffer);
+
+}
+/*******************************************************************************/
+uint8_t GetEchoMessage(char *const destBuf)
+{
+	memcpy(destBuf, echo_packet.data, echo_packet.dataLen);
+	return echo_packet.dataLen;
+}
+/********************************************************************************/
+int BeginEchoPacket(char *pBuf, COMMAND_TYPE_T command)
+{
+	GSM_INFO_T gsm_info;
+	char *pTempPtr;
+	char temp[4];
+
+	pTempPtr = pBuf;
+
+	Get_GsmInfo(&gsm_info);
+
+	strcpy(pTempPtr, "@SET;");
+	pTempPtr += strlen(pTempPtr);
+	memcpy(pTempPtr, gsm_info.imei_no, 15);
+	pTempPtr += 15;
+
+	*(pTempPtr++) = ';';
+
+	itoa((int)command, temp, 10);
+	strcpy(pTempPtr, temp);
+
+	return strlen(pBuf);
+}
+int CloseEchoPacket(char *pBuf)
+{
+	char *pTempPtr;
+
+	pTempPtr = pBuf;
+	*(pTempPtr++) = '!';
+	return strlen(pBuf);
+}
+/**********************************************************************************/
+int AddStringToEchoPacket(char *pBuf, char *strToAdd)
+{
+	char *pTempPtr;
+
+	pTempPtr = pBuf;
+
+	*(pTempPtr++) = ';';
+
+	strcpy(pTempPtr, strToAdd);
+	pTempPtr += strlen(strToAdd);
+
+	return strlen(pBuf);
+}

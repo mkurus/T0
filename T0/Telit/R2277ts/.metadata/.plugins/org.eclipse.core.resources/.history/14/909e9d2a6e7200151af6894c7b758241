@@ -1,0 +1,81 @@
+/*
+ * messages.h
+ *
+ *  Created on: 30 Tem 2015
+ *      Author: admin
+ */
+
+#ifndef MESSAGES_H_
+#define MESSAGES_H_
+
+typedef enum
+{
+	DIGITAL_INPUT1_PASSIVE,
+	DIGITAL_INPUT1_ACTIVE,
+	DIGITAL_INPUT2_PASSIVE,
+	DIGITAL_INPUT2_ACTIVE,
+	SPEED_LIMIT_VIOLATION,
+	IDLE_TIME_INDICATION,
+	RFID_CARD_READING,
+	CANBUS_DATA_READY,
+	TEMP_SENSOR_DATA,
+	MAX_STOP_TIME_EXCEEDED,
+	EXT_POWER_STATUS_CHANGE,
+	BATTERY_LEVEL,
+	IDLE_TIME_AFTER_LAST_MESSAGE,
+	OFFLINE_RECORD = 19,
+	ANALOG_INPUT_READING,
+	GARMIN_NAVIGATION,
+	CELL_ID,
+	IGNITION_STATUS,
+	GPS_INFO,
+	ROAMING_DATA,
+	SIM_REMOVED,
+}MESSAGE_TYPE_T;
+
+#define SW_VERSION  "R2222"
+#define BUILD_DATE  __DATE__
+
+#define VERSION    ";"SW_VERSION";"BUILD_DATE";"
+
+#define MAX_T_MESSAGE_LEN             256
+
+
+#define IMEI_LEN              15
+#define IMSI_LEN              15
+#define DATE_LEN              6
+#define TIME_LEN              6
+#define LATITUDE_LEN          8
+#define LONGTITUDE_LEN        9
+#define SPEED_LEN             2
+#define DIRECTION_LEN         3
+#define DISTANCE_LEN          5
+#define SIGPOWER_LEN          2
+int Trio_PrepareTMessage(char **);
+int Trio_PrepareTMessageBody(char **);
+int Trio_BeginTMessage(char **);
+int Trio_EndTMessage(char **);
+int32_t Trio_PreparePingMessage(char **pBuffer);
+int Trio_PrepareSTMessage(char **pBuffer);
+int32_t Trio_PrepareTMessageExtension(char **, MESSAGE_TYPE_T);
+void StartSendingMessage(int);
+
+
+typedef struct TRIO_T_MESSAGE
+{
+	/* order of the struct members should not be changed */
+	char imei[IMEI_LEN];
+	char imsi[IMSI_LEN];
+	char time[TIME_LEN];
+	char latitude[LATITUDE_LEN];
+	char longtitude[LONGTITUDE_LEN];
+	char speed[SPEED_LEN];
+    char direction[DIRECTION_LEN];
+    char ewns;
+    uint32_t status;
+    char distance[DISTANCE_LEN];
+    char sig_power[SIGPOWER_LEN];
+}TRIO_T_MESSAGE_T;
+
+
+#endif /* MESSAGES_H_ */

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item value="257" key="DIALOG_WIDTH"/>
+		<item value="163" key="DIALOG_Y_ORIGIN"/>
+		<item value="593" key="DIALOG_X_ORIGIN"/>
+		<item value="381" key="DIALOG_HEIGHT"/>
+		<item value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI" key="DIALOG_FONT_NAME"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="true" key="wrap"/>
+		<item value="false" key="casesensitive"/>
+		<item value="false" key="isRegEx"/>
+		<item value="false" key="incremental"/>
+		<item value="false" key="wholeword"/>
+		<item value="" key="selection"/>
+		<list key="findhistory">
+			<item value="HARD_RESET_LOW_TIME"/>
+			<item value="Get_DataSendPeriod"/>
+			<item value="temp"/>
+			<item value="u32_validSign"/>
+			<item value="MAX_T_MESSAGE_SIZE"/>
+			<item value="cacheBuffer"/>
+			<item value="cachedBytes"/>
+			<item value="write_event_to_process_task"/>
+		</list>
+		<list key="replacehistory">
+			<item value="MAX_LOG_ENTRY_SIZE"/>
+			<item value="buffer"/>
+			<item value="bufferedBytes"/>
+			<item value="onIdle"/>
+		</list>
+	</section>
+</section>

@@ -1,0 +1,5 @@
+<directory>
+ <chips chipVendor='NXP' >
+  <chip name='LPC824' xml_file='LPC824_part.xml' />
+ </chips>
+</directory> 

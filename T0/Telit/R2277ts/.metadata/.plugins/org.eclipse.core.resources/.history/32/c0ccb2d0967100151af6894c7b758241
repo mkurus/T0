@@ -1,0 +1,335 @@
+#include "board.h"
+#include "gps.h"
+#include "gsm.h"
+#include "status.h"
+#include "messages.h"
+#include "status.h"
+#include "utils.h"
+#include <string.h>
+#include <stdlib.h>
+
+/* Function prototypes*/
+char get_ewns_code(char latitude, char longtitude);
+
+/****************************************************/
+int32_t Trio_PreparePingMessage(char **pBuffer)
+{
+	GSM_INFO_T gsm_info;
+
+	*((*pBuffer)++) = '[';
+	*((*pBuffer)++) = 'P';
+	*((*pBuffer)++) = ';';
+
+	Get_GsmInfo(&gsm_info);
+
+	memcpy(*pBuffer, gsm_info.imei_no, IMEI_LEN);
+		(*pBuffer) += IMEI_LEN;
+
+	*((*pBuffer)++) = ']';
+
+	return 19;
+}
+/*****************************************************************************/
+/** Fills the message buffer sent by pBuffer parameter and returns
+ *  the number of bytes in formatted message
+ *
+ *  c_buffer  [in out]     buffer for the message
+ *
+ *  return number of bytes in the buffer
+ ******************************************************************************/
+int32_t Trio_PrepareSTMessage(char **pBuffer)
+{
+	GSM_INFO_T gsm_info;
+
+	*((*pBuffer)++) = '[';
+	*((*pBuffer)++) = 'S';
+	*((*pBuffer)++) = 'T';
+	*((*pBuffer)++) = ';';
+
+	Get_GsmInfo(&gsm_info);
+
+	memcpy(*pBuffer, gsm_info.imei_no, IMEI_LEN);
+	(*pBuffer) += IMEI_LEN;
+
+	memcpy(*pBuffer, VERSION, sizeof(VERSION) - 1);
+	(*pBuffer) += sizeof(VERSION) - 1;
+
+	memcpy(*pBuffer, gsm_info.imsi_no, IMSI_LEN);
+	(*pBuffer) += IMSI_LEN;
+
+	*((*pBuffer)++) = ']';
+
+	return 54;
+}
+/***********************************************************/
+int32_t Trio_PrepareTMessageBody(char **u8_tMessage)
+{
+	GSM_INFO_T gsm_info;
+	RMC_MESSAGE_T rmc_info;
+	GPS_POSITION_DATA_T position_info;
+	static uint32_t mileage = 0;
+	uint32_t u32_speedKm;
+	int32_t msgStart;
+	char buffer2[10];
+
+	msgStart = (int)(*u8_tMessage);
+
+	Get_GsmInfo(&gsm_info);
+	memcpy(*u8_tMessage, gsm_info.imei_no, IMEI_LEN);
+	(*u8_tMessage) += IMEI_LEN;
+
+	Get_RMCInfo(&rmc_info);
+	/* date */
+	*((*u8_tMessage)++) =   (rmc_info.day/10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.day%10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.month/10) + '0';
+	*((*u8_tMessage)++) =   (rmc_info.month%10) + '0';
+	*((*u8_tMessage)++) =   (rmc_info.year/10)  + '0';
+	*((*u8_tMessage)++) =   (rmc_info.year%10)  + '0';
+
+	/* time */
+	*((*u8_tMessage)++) =   (rmc_info.utc_hour/10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.utc_hour%10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.utc_minute/10) + '0';
+	*((*u8_tMessage)++) =   (rmc_info.utc_minute%10) + '0';
+	*((*u8_tMessage)++) =   (rmc_info.utc_second/10) + '0';
+	*((*u8_tMessage)++) =   (rmc_info.utc_second%10) + '0';
+
+	/* latitude */
+	*((*u8_tMessage)++) =   (rmc_info.coords.latitude.degrees /10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.coords.latitude.degrees %10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.coords.latitude.minutes /10)   + '0';
+	*((*u8_tMessage)++) =   (rmc_info.coords.latitude.minutes %10)   + '0';
+
+	rmc_info.coords.latitude.minutes_frac /= 10;
+	*((*u8_tMessage)++) =  (rmc_info.coords.latitude.minutes_frac /1000)       + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.latitude.minutes_frac %1000 /100)  + '0';
+	*((*u8_tMessage)++) = (rmc_info.coords.latitude.minutes_frac %100)/10     + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.latitude.minutes_frac %10)         + '0';
+
+	/* longitude */
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.degrees /100)      + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.degrees %100) /10  + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.degrees %10)       + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.minutes /10)       + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.minutes %10)       + '0';
+
+	rmc_info.coords.longitude.minutes_frac /=10;
+	*((*u8_tMessage)++) = (rmc_info.coords.longitude.minutes_frac /1000)       + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.minutes_frac %1000) /100  + '0';
+	*((*u8_tMessage)++) = (rmc_info.coords.longitude.minutes_frac %100)/10     + '0';
+	*((*u8_tMessage)++) =  (rmc_info.coords.longitude.minutes_frac %10)         + '0';
+
+	/* speed */
+	u32_speedKm = rmc_info.speed*1812/1000;
+	Hex2Str(buffer2, u32_speedKm);
+	*((*u8_tMessage)++) =  buffer2[6];
+	*((*u8_tMessage)++) =  buffer2[7];
+
+	/* course */
+	Hex2Str(buffer2,rmc_info.course);
+
+	memcpy(*u8_tMessage, &buffer2[5], 3);
+	(*u8_tMessage) +=3;
+
+	*((*u8_tMessage)++) = get_ewns_code(
+			rmc_info.coords.latitude.indicator,
+			rmc_info.coords.longitude.indicator);
+
+	/* insert 4 byte status information */
+//	pStatus = (uint32_t *)status_t;
+	*((*u8_tMessage)++) = 0x30;//WORD32_BYTE0(*pStatus);
+	*((*u8_tMessage)++) = 0x30;// WORD32_BYTE1(*pStatus);
+	*((*u8_tMessage)++) = 0x30;//WORD32_BYTE2(*pStatus);
+	*((*u8_tMessage)++) = 0x30;//WORD32_BYTE3(*pStatus);
+
+	Get_PositionInfo(&position_info);
+//	position_info.distance = 0x8D2;
+	mileage += position_info.distance;
+	Hex2Str(buffer2,mileage);
+
+	memcpy(*u8_tMessage, &buffer2[3], 5);
+	(*u8_tMessage) += 5;
+
+	 /* signal power*/
+	*((*u8_tMessage)++) = LOWBYTE(gsm_info.csq) + '0';
+	*((*u8_tMessage)++) = HIGHBYTE(gsm_info.csq) + '0';
+
+
+	return  (int)(*u8_tMessage) - msgStart;
+
+}
+
+/***************************************************************************/
+char get_ewns_code(char latitude, char longtitude)
+{
+	if(latitude == 'N' && longtitude == 'E') return '0';
+	else if(latitude == 'N' && longtitude == 'W') return '1';
+	else if(latitude == 'S' && longtitude == 'E') return '2';
+	else if(latitude == 'S' && longtitude == 'W') return '3';
+}
+/****************************************************************************/
+int32_t Trio_BeginTMessage(char **u8_tMessage)
+{
+	*((*u8_tMessage)++) =  '[';
+	*((*u8_tMessage)++) =  'T';
+
+	return 2;
+}
+/*****************************************************************************/
+int32_t Trio_EndTMessage(char **u8_tMessage)
+{
+	*((*u8_tMessage)++) = ']';
+
+	return 1;
+}
+/*****************************************************************************/
+int32_t Trio_PrepareTMessage(char **u8_tMessage)
+{
+	int i_msglen = 0;
+    char buffer[16];
+
+	EVENT_INFO_T *event_info;
+	STATUS_INFO_T status_info;
+	GSM_INFO_T gsm_info;
+
+	Get_StatusInfo(&status_info);
+	Get_EventInfo(event_info);
+
+	i_msglen  = Trio_BeginTMessage(u8_tMessage);
+	i_msglen += Trio_PrepareTMessageBody(u8_tMessage);
+
+	if(event_info->event_max_idle_time_exceeded) {
+		PRINT_K("Idle time alarm\r\n");
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, IDLE_TIME_AFTER_LAST_MESSAGE);
+		event_info->event_max_idle_time_exceeded = RESET;
+	}
+	if(event_info->event_speed_limit_violation) {
+		PRINT_K("\r\n Speed Limit Violated\r\n");
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, SPEED_LIMIT_VIOLATION);
+		//event_info.event_speed_limit_violation = RESET;
+	}
+	if(event_info->event_max_stop_time_exceeded) {
+		PRINT_K("Stop time alarm\r\n");
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, MAX_STOP_TIME_EXCEEDED);
+	//	event_info.event_max_stop_time_exceeded = RESET;
+	}
+	if(event_info->event_sim_card_removed){
+		PRINT_K("SIM card  alarm\r\n");
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, SIM_REMOVED);
+	//	event_info.event_sim_card_removed = RESET;
+	}
+	if(event_info->event_power_status_changed) {
+		PRINT_K("Power status change alarm\r\n");
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, EXT_POWER_STATUS_CHANGE);
+	//	event_info.event_power_status_changed = RESET;
+	}
+	/* if main power supply is disconnected and battery level is not
+	 * 	full add battery status
+	 */
+	PRINT_K("\r\n*************************************\r\n");
+	itoa(status_info.batteryLevel, buffer, 10 );
+	PRINT_K(buffer);
+	PRINT_K("\r\n*************************************\r\n");
+	if((status_info.batteryLevel < 100) && (status_info.power_status != SET))
+		i_msglen += Trio_PrepareTMessageExtension(u8_tMessage, BATTERY_LEVEL);
+
+	i_msglen += Trio_EndTMessage(u8_tMessage);
+
+	return i_msglen;
+}
+/*************************************************************************************/
+int32_t Trio_PrepareTMessageExtension(char **u8_tMessage, MESSAGE_TYPE_T message_type)
+{
+	GSA_MESSAGE_T gsa_info;
+	GGA_MESSAGE_T gga_info;
+	STATUS_INFO_T status_info;
+	int32_t i_msgStart;
+	char temp[16];
+
+	i_msgStart = (int)(*u8_tMessage);
+	switch(message_type)	{
+
+		case  GPS_INFO:
+		/* PARAM 1*/
+		Get_GSAInfo(&gsa_info);
+		Get_GGAInfo(&gga_info);
+		Get_StatusInfo(&status_info);
+		memcpy(*u8_tMessage, "-025:", 5);
+		(*u8_tMessage) +=5;
+		*((*u8_tMessage)++) = gsa_info.mode2;
+
+		/* PARAM 2*/
+		itoa(gsa_info.pdop_int, temp, 10);
+		memcpy(*u8_tMessage, temp, 1);
+		(*u8_tMessage) +=1;
+		*((*u8_tMessage)++) = '.';
+		itoa(gsa_info.pdop_frac, temp, 10);
+		memcpy(*u8_tMessage, temp, 2);
+		(*u8_tMessage) += 2;
+
+		/* PARAM 3*/
+		itoa(gsa_info.hdop_int, temp, 10);
+		memcpy(*u8_tMessage, temp, 1);
+		(*u8_tMessage) +=1;
+		*((*u8_tMessage)++) = '.';
+		itoa(gsa_info.hdop_frac, temp, 10);
+		memcpy(*u8_tMessage, temp, 2);
+		(*u8_tMessage) += 2;
+
+		/* PARAM 4*/
+		itoa(gsa_info.vdop_int, temp, 10);
+		memcpy(*u8_tMessage, temp, 1);
+		(*u8_tMessage) +=1;
+		*((*u8_tMessage)++) = '.';
+		itoa(gsa_info.vdop_frac, temp, 10);
+		memcpy(*u8_tMessage, temp, 2);
+		(*u8_tMessage) += 2;
+
+		/* PARAM 5 */
+		*((*u8_tMessage)++) = gga_info.satellites;
+		break;
+
+		case IDLE_TIME_AFTER_LAST_MESSAGE:
+		memcpy(*u8_tMessage, "-00F:", 5);
+		(*u8_tMessage) += 5;
+		Hex2Str(temp, status_info.idle_time_info.idle_time / 100);
+		strcpy(*u8_tMessage, temp);
+		(*u8_tMessage) += strlen(temp);
+		break;
+
+		case MAX_STOP_TIME_EXCEEDED:
+		memcpy(*u8_tMessage, "-00C", 4);
+		(*u8_tMessage) += 4;
+		break;
+
+		case SPEED_LIMIT_VIOLATION:
+		memcpy(*u8_tMessage, "-005", 4);
+		(*u8_tMessage) += 4;
+		break;
+
+		case SIM_REMOVED:
+		memcpy(*u8_tMessage, "-027", 4);
+		(*u8_tMessage) += 4;
+		break;
+
+		case EXT_POWER_STATUS_CHANGE:
+		memcpy(*u8_tMessage, "-00D:", 5);
+		(*u8_tMessage) += 5;
+		*((*u8_tMessage)++) = status_info.power_status + 0x30;
+		break;
+
+		case BATTERY_LEVEL:
+		memcpy(*u8_tMessage, "-00E:", 5);
+		(*u8_tMessage) += 5;
+		Get_StatusInfo(&status_info);
+		itoa(status_info.batteryLevel, temp, 10);
+		strcpy(*u8_tMessage, temp);
+		(*u8_tMessage) += strlen(temp);
+		break;
+
+	}
+	return  (int)(*u8_tMessage) - i_msgStart;
+}
+/*******************************************************************************/
+

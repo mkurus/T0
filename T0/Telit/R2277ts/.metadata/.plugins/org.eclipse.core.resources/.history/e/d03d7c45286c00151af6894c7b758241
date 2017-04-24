@@ -1,0 +1,133 @@
+/*
+===============================================================================
+ Name        : T0_Project.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#if defined (__USE_LPCOPEN)
+#if defined(NO_BOARD_LIB)
+#include "chip.h"
+#else
+#include <stddef.h>
+#include <string.h>
+#include "board.h"
+#include "MMA7455.h"
+#include "settings.h"
+#include "timer.h"
+#include "status.h"
+#include "gsm.h"
+#include "spi.h"
+#include "i2c.h"
+#include "utils.h"
+#include "settings.h"
+#endif
+#endif
+
+#include <cr_section_macros.h>
+void Init_UART_PinMux();
+// TODO: insert other definitions and declarations here
+TIMER_INFO_T HEARTBEAT_TIMER;
+extern void _vStackTop(void);
+int main(void) {
+
+#if defined (__USE_LPCOPEN)
+#if !defined(NO_BOARD_LIB)
+    // Read clock settings and update SystemCoreClock variable
+	uint8_t buffer[16];
+    SystemCoreClockUpdate();
+    SysTick_Config(SystemCoreClock / TICKRATE_HZ1);
+
+    Init_UART_PinMux();
+    Init_GSM_UART_PinMux();
+    Init_GPS_UART_Pinmux();
+    Init_DEBUG_USART();
+    Trio_Init_GSM_UART();
+    Trio_Init_GPS_UART();
+    Trio_ConfigureSimDetectInterrupt();
+    Trio_ConfigureIgnDetectInterrupt();
+    Trio_ConfigureExtPowerDetectInterrupt();
+    Set_GsmResetPinFunction(10);
+   // PRINT_K("\r\nWaiting 5 secs\r\n");
+   // mn_wait_ticks(500);
+    Trio_ConfigureRelayGPIO();
+    Board_LED_Init();
+    int i;
+    for(i =0; i<100; i++) {
+    	Gsm_AssertModuleResetLine();
+    	mn_wait_ticks(50);
+    	Gsm_DeassertModuleResetLine();
+    	mn_wait_ticks(50);
+    }
+
+#endif
+#endif
+    Trio_SPI_Init();
+
+    Print_Val("\r\n Initial Stack Pointer 0x",_vStackTop);
+	PRINT_K("\r\n");
+    Set_Timer(&HEARTBEAT_TIMER,100);
+    SST25_Jedec_ID_Read();          /*  read flash ID*/
+   // MMA7455_Read(0, 2, buffer);
+    SST25_EnableWSR();              /* enable write status register*/
+    SST25_WriteSR(0x00);            /* disable write protection */
+    SST25_WriteEnable();
+    SST25_ChipErase();
+
+   if(SST25_IsEmpty()) {
+	   PRINT_K("Flash empty\r\n");
+	   WriteInitialValuesToFlash();
+   }
+   else
+	   PRINT_K("Flash not empty\r\n");
+
+   Get_FlashWriteAddress();
+   Get_FlashReadAddress();
+   Init_StatusInfo();
+   Load_Settings();
+  /*  char test_config[] = "#SET;01;218.13.11.6;487;99!";
+    ParseConfigurationString(&test_config[5]);*/
+	while(1) {
+    	if(mn_timer_expired(&HEARTBEAT_TIMER)) {
+    		PRINT_K("\r\nMMMMM\r\n");
+    		Set_Timer(&HEARTBEAT_TIMER,100);
+    		Board_LED_Toggle(P_OKLED);
+    		Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, 0, 19);
+    	}
+    	Trio_GpsTask();
+    	Trio_GsmTask();
+    	Trio_SPITask();
+    	Trio_StatusTask();
+
+    }
+    return 0 ;
+}
+
+static void Reset_GPIO(void)
+{
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 10, true);
+}
+/* UART Pin mux function - note that SystemInit() may already setup your
+   pin muxing at system startup */
+ void Init_UART_PinMux(void)
+{
+
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+    Chip_Clock_SetUARTClockDiv(1);
+
+	Chip_SWM_DisableFixedPin(SWM_FIXED_ACMP_I1);
+	Chip_SWM_DisableFixedPin(SWM_FIXED_SWCLK);
+	Chip_SWM_MovablePinAssign(SWM_U0_TXD_O, 4);
+	Chip_SWM_MovablePinAssign(SWM_U0_RXD_I, 0);
+
+
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+}
+ void Trio_ConfigureRelayGPIO()
+ {
+	 Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, 19);
+	 Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 19, false);
+ }

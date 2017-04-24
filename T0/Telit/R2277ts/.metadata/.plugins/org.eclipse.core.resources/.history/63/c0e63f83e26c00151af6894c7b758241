@@ -1,0 +1,948 @@
+#include "board.h"
+#include "gsm.h"
+#include "settings.h"
+#include "timer.h"
+#include "at_commands.h"
+#include "gps.h"
+#include "status.h"
+#include "messages.h"
+#include "chip.h"
+#include "spi.h"
+#include "utils.h"
+#include "messages.h"
+#include "timer.h"
+#include "string.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define GSM_UART         	 	 LPC_USART1
+#define GSM_BAUD_RATE   		 115200
+#define GSM_IRQ_SELECTION 	 	 UART1_IRQn
+#define GSM_UART_ISR_HANDLER 	 UART1_IRQHandler
+
+#define TRIO_CONFIG_WORD         "#SET"
+/* Transmit and receive ring buffer sizes */
+#define GSM_UART_RRB_SIZE 256	/* Receive */
+#define GSM_UART_SRB_SIZE 256 	/* Send */
+#define MAX_SET_COMMAND_PSWD_LENGTH          10
+#define AT_RESPONSE_BUFFER_SIZE              256
+
+#define AT_RESPONSE_TIMEOUT                  60       /* 500 ms timeout for at commands */
+#define SIM_INITIALIZE_TIMEOUT               1000     /* timeout to initialize SIM card */
+#define GPRS_ATTACH_TIMEOUT                  6000     /* timeout to attach to GPRS */
+#define GSM_REGISTRATION_TIMEOUT             6000     /* timeout to attach to gsm network */
+#define SERVER_CONNECTION_TIMEOUT            3000     /* timeout to connect to server*/
+#define KEEP_ALIVE_TIMEOUT                   1000*5   /* keep-alive interval = 5 mins */
+#define WAIT_DELAY_AFTER_RESET               600      /* 6 secs timoeut for gsm module after reboot */
+#define GSM_MODULE_RESET_LINE_LOW_TIME       100      /* Min. 200ms is required for hard reset*/
+#define GSM_REGISTRATION_TIMEOUT             6000     /* 60 secs timeout for registration */
+#define MODULE_AT_COMM_DOWN_TIMEOUT          2*6000
+#define OFFLINE_DATA_SENT_TIMEOUT            1000
+#define PERIODIC_DATA_SEND_TIMEOUT           1000
+
+void Gsm_AssertModuleResetLine(void);
+void Gsm_DeassertModuleResetLine(void);
+void Restart_Modem();
+void Send_ATCommand(const char *,TIMER_TICK_T, char *);
+AT_RESPONSE_CODE GetResponseCode(char *);
+AT_RESPONSE_CODE ProcessATResponse(char *);
+AT_RESPONSE_CODE ProcessCIEVMessage(char *);
+AT_RESPONSE_CODE ProcessCPinMessage(char *);
+AT_RESPONSE_CODE ProcessCGREGMessage(char);
+AT_RESPONSE_CODE ProcessCREGMessage(char);
+void ProcessBatteryLevelMessage(char *buffer);
+
+TIMER_INFO_T AT_RESPONSE_TIMER;
+TIMER_INFO_T MODULE_AT_COMM_TIMER;
+TIMER_INFO_T SEND_OFFLINE_DATA_TIMER;
+TIMER_INFO_T COMMAND_REPEAT_DELAY_TIMER;
+
+uint8_t ModuleInitialize(AT_RESPONSE_CODE);
+uint8_t ConnectToServer(AT_RESPONSE_CODE);
+uint8_t ConnectedToServer(AT_RESPONSE_CODE, char *const);
+
+bool ProcessSRINGMessage(uint8_t *buffer, RECV_DATA_T *recv_data);
+uint8_t ProcessReceivedData(RECV_DATA_T *recv_data);
+/* Transmit and receive buffers */
+static uint8_t gsm_rxbuff[GSM_UART_RRB_SIZE];
+static uint8_t gsm_txbuff[GSM_UART_SRB_SIZE];
+static GSM_DATA_TYPE_T gsmDataType_t =  DATA_TYPE_NO_DATA;
+
+extern FLASH_SETTINGS_T settings;
+/* Transmit and receive ring buffers */
+STATIC RINGBUFF_T gsm_txring, gsm_rxring;
+GSM_INFO_T gsm_params_t;
+void Trio_Init_GSM_UART()
+{
+	Chip_UART_Init(GSM_UART);
+	Chip_UART_ConfigData(GSM_UART, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1);
+	Chip_UART_SetBaud(GSM_UART, GSM_BAUD_RATE);
+	Chip_UART_Enable(GSM_UART);
+	Chip_UART_TXEnable(GSM_UART);
+
+	/* Before using the ring buffers, initialize them using the ring
+	   buffer init function */
+	memset(gsm_rxbuff, 0,GSM_UART_RRB_SIZE);
+	memset(gsm_txbuff, 0,GSM_UART_SRB_SIZE);
+	RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+	RingBuffer_Init(&gsm_txring, gsm_txbuff, 1, GSM_UART_SRB_SIZE);
+
+	Chip_UART_IntEnable(GSM_UART, UART_INTEN_RXRDY);
+
+	/* preemption = 1, sub-priority = 1 */
+//	NVIC_SetPriority(GSM_IRQ_SELECTION, 1);
+	NVIC_EnableIRQ(GSM_IRQ_SELECTION);
+	//PRINT_K("GSM UART Configured");
+}
+/*************************************************************/
+void GSM_UART_ISR_HANDLER(void)
+{
+	/* Want to handle any errors? Do it here. */
+
+	/* Use default ring buffer handler. Override this with your own
+	   code if you need more capability. */
+	Chip_UART_IRQRBHandler(GSM_UART, &gsm_rxring, &gsm_txring);
+}
+/**************************************************************/
+void Init_GSM_UART_PinMux(void)
+{
+
+	/* Enable the clock to the Switch Matrix */
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+
+//	Chip_Clock_SetUARTClockDiv(1);	/* divided by 1 */
+
+	Chip_SWM_DisableFixedPin(SWM_FIXED_ADC8);
+	Chip_SWM_DisableFixedPin(SWM_FIXED_I2C0_SDA);
+
+	Chip_SWM_MovablePinAssign(SWM_U1_TXD_O, 18);
+	Chip_SWM_MovablePinAssign(SWM_U1_RXD_I, 11);
+
+	/* Disable the clock to the Switch Matrix to save power */
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+	//PRINT_K("GSM RX/TX pins muxed");
+}
+/**************************************************************/
+void Trio_GsmTask()
+{
+	AT_RESPONSE_CODE t_ATResultCode = AT_RESPONSE_NULL;
+	static char at_response_buffer[AT_RESPONSE_BUFFER_SIZE];
+	static GSM_MODULE_STATE t_gsmState = MODULE_INITIALIZING_STATE;
+
+	t_ATResultCode = ProcessATResponse(at_response_buffer);
+	/*if(t_ATResultCode != AT_RESPONSE_NULL)
+		Set_Timer(&MODULE_AT_COMM_TIMER, MODULE_AT_COMM_DOWN_TIMEOUT);
+	else
+	{
+		if(mn_timer_expired(&MODULE_AT_COMM_TIMER))
+			Restart_Modem();
+	}*/
+	switch(t_gsmState)
+	{
+		case MODULE_INITIALIZING_STATE:
+		if(ModuleInitialize(t_ATResultCode) == true)
+		 t_gsmState = MODULE_CONNECTING_TO_SERVER_STATE;
+		break;
+
+		case MODULE_CONNECTING_TO_SERVER_STATE:
+		switch(ConnectToServer(t_ATResultCode))
+		{
+			case ERROR_CONNECTING_TO_SERVER:
+			PRINT_K("Module detached from network");
+			t_gsmState = MODULE_INITIALIZING_STATE;
+			Restart_Modem();
+			break;
+
+			case MODULE_CONNECTED_TO_SERVER:
+			PRINT_K("Module connected to server");
+			gsm_params_t.b_connectedToServer = TRUE;
+			t_gsmState = MODULE_CONNECTED_TO_SERVER_STATE;
+			break;
+		}
+		break;
+
+		case MODULE_CONNECTED_TO_SERVER_STATE:
+		if(ConnectedToServer(t_ATResultCode, at_response_buffer) == GSM_NETWORK_ERROR)
+		{
+			PRINT_K("GSM network error");
+			t_gsmState = MODULE_INITIALIZING_STATE;
+			gsm_params_t.b_connectedToServer = FALSE;
+			Restart_Modem();
+		}
+		break;
+	}
+}
+/****************************************************************************/
+uint8_t ConnectedToServer(AT_RESPONSE_CODE t_atResultCode, char *const data)
+{
+	static GSM_TASK_CONNECTED_STATE t_connectedState = GSM_TASK_SEND_ST_MESSAGE_STATE;
+	static TIMER_INFO_T SEND_PERIODIC_DATA_TIMER;
+	static TIMER_INFO_T KEEP_ALIVE_TIMER;
+	static uint8_t c_TMessageBuffer[MAX_T_MESSAGE_LEN];
+	NMEA_MSG_T * nmea_msg;
+    uint8_t result =  MODULE_ATTACHED_TO_NETWORK;
+	uint8_t buffer[8];
+	uint8_t *p_MsgPtr = c_TMessageBuffer;
+	static int32_t i_msgLen = 0;
+
+	switch(t_connectedState)
+	{
+		case GSM_TASK_SEND_ST_MESSAGE_STATE:
+		i_msgLen = Trio_PrepareSTMessage(&p_MsgPtr);
+		itoa(i_msgLen, buffer,10);
+		Chip_UART_SendRB(GSM_UART, &gsm_txring, Command_SSENDEXT, sizeof(Command_SSENDEXT) -1);
+		PRINT_K(Command_SSENDEXT);
+		Chip_UART_SendRB(GSM_UART, &gsm_txring, buffer, strlen(buffer));
+		PRINT_K(buffer);
+		Chip_UART_SendRB(GSM_UART, &gsm_txring, "\r",1);
+		Set_Timer(&AT_RESPONSE_TIMER, AT_RESPONSE_TIMEOUT*10);
+		Set_Timer(&SEND_OFFLINE_DATA_TIMER, PERIODIC_DATA_SEND_TIMEOUT / 4);
+		Set_Timer(&SEND_PERIODIC_DATA_TIMER, PERIODIC_DATA_SEND_TIMEOUT);
+		t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+		break;
+
+		case GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_SEND_DATA_PROMPT:
+			Chip_UART_SendRB(GSM_UART, &gsm_txring, c_TMessageBuffer, i_msgLen);
+			c_TMessageBuffer[i_msgLen] = '\0';
+			PRINT_K(c_TMessageBuffer);
+			Set_Timer(&AT_RESPONSE_TIMER, AT_RESPONSE_TIMEOUT);
+			t_connectedState = GSM_TASK_WAIT_OK_AFTER_SEND_DATA_STATE;
+			break;
+
+			default:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+				t_connectedState = GSM_TASK_SEND_ST_MESSAGE_STATE;
+				result = GSM_NETWORK_ERROR;
+			}
+			break;
+		}
+		break;
+
+		case GSM_TASK_WAIT_OK_AFTER_SEND_DATA_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_RESPONSE_OK:
+			PRINT_K("Data Sent successfully...");
+			Set_Timer(&KEEP_ALIVE_TIMER, KEEP_ALIVE_TIMEOUT);
+			t_connectedState = GSM_TASK_WAIT_IDLE_IN_CONNECTED_STATE;
+			break;
+
+			default:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER))  {
+				t_connectedState = GSM_TASK_SEND_ST_MESSAGE_STATE;
+				result = GSM_NETWORK_ERROR;
+			}
+			break;
+		}
+		break;
+
+		case GSM_TASK_WAIT_IDLE_IN_CONNECTED_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_SEND_ASYNCHRONOUS_T_MESSAGE:
+			PRINT_K("Send async T message");
+			i_msgLen = Trio_PrepareTMessage(&p_MsgPtr);
+			StartSendingMessage(i_msgLen);
+			t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+			break;
+
+			case AT_SEND_STATUS_MESSAGE:
+			i_msgLen = Trio_PreparePingMessage(&p_MsgPtr);
+			StartSendingMessage(i_msgLen);
+			t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+			break;
+
+			case AT_RESPONSE_GSM_REG_FAILED:
+			case AT_GPRS_DETACHED:
+			t_connectedState = GSM_TASK_SEND_ST_MESSAGE_STATE;
+			result = GSM_NETWORK_ERROR;
+			break;
+
+			case AT_SERVER_DISCONNECTED:       /* server side closed the socket */
+			break;
+
+			default:
+			if(Get_AlarmStatus()){
+				PRINT_K("Alarm status detected");
+				i_msgLen = Trio_PrepareTMessage(&p_MsgPtr);
+				StartSendingMessage(i_msgLen);
+				t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+			 }
+			else if(mn_timer_expired(&KEEP_ALIVE_TIMER)){
+				PRINT_K("Keep-Alive sent timeout");
+				i_msgLen = Trio_PreparePingMessage(&p_MsgPtr);
+				StartSendingMessage(i_msgLen);
+				Set_Timer(&AT_RESPONSE_TIMER, AT_RESPONSE_TIMEOUT);
+				t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+			}
+			else if(mn_timer_expired(&SEND_PERIODIC_DATA_TIMER)) {
+				    PRINT_K("Periodic  data sent timeout");
+					i_msgLen = Trio_PrepareTMessage(&p_MsgPtr);
+					StartSendingMessage(i_msgLen);
+					Set_Timer(&SEND_PERIODIC_DATA_TIMER, PERIODIC_DATA_SEND_TIMEOUT);
+					t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+			}
+			else if(mn_timer_expired(&SEND_OFFLINE_DATA_TIMER)){
+				    PRINT_K("Off-line data sent timeout");
+				    Set_Timer(&SEND_OFFLINE_DATA_TIMER, PERIODIC_DATA_SEND_TIMEOUT / 4);
+					i_msgLen = ReadOffLineDataFromFlash(p_MsgPtr);
+					if(i_msgLen > 0){
+						StartSendingMessage(i_msgLen);
+						t_connectedState = GSM_TASK_WAIT_SEND_DATA_PROMPT_STATE;
+					}
+			}
+			break;
+		}
+		break;
+	}
+	return result;
+}
+/*****************************************************************************/
+uint8_t ConnectToServer(AT_RESPONSE_CODE t_atResultCode)
+{
+//	static GSM_TASK_CONNECTING_STATE t_connectingState = GSM_TASK_CREATE_PDP_CONTEXT_STATE;
+	static GSM_TASK_CONNECTING_STATE t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+	//static GSM_TASK_CONNECTING_STATE t_connectingState = GSM_TASK_SET_SOCKET_CONFIG;
+	uint8_t result = MODULE_ATTACHED_TO_NETWORK;
+
+	switch(t_connectingState)
+	{
+		case GSM_TASK_ATTACH_TO_GPRS:
+		Send_ATCommand(Command_CGDCONT, AT_RESPONSE_TIMEOUT,"");
+		t_connectingState = GSM_TASK_WAIT_OK_RESPONSE_AFTER_DEFINE_PDP_CONTEXT_STATE;
+	    break;
+		/************************/
+		case GSM_TASK_WAIT_OK_RESPONSE_AFTER_DEFINE_PDP_CONTEXT_STATE:
+		switch(t_atResultCode)
+		{
+			  case AT_RESPONSE_OK:
+			  Send_ATCommand(Command_SCFG, GPRS_ATTACH_TIMEOUT,"");
+			  t_connectingState = GSM_TASK_SET_SOCKET_CONFIG_STATE;
+			  break;
+
+			  default:
+			  if(mn_timer_expired(&AT_RESPONSE_TIMER))	{
+				  Restart_Modem();
+				  t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+				  result = ERROR_CONNECTING_TO_SERVER;
+			    }
+			   break;
+		}
+		break;
+		/*****************************/
+		case GSM_TASK_SET_SOCKET_CONFIG_STATE:
+		switch(t_atResultCode)
+		{
+		 	 case AT_RESPONSE_OK:
+		  	 Send_ATCommand(Command_SCFGEXT, GPRS_ATTACH_TIMEOUT,"");
+		 	 t_connectingState = GSM_TASK_WAIT_OK_RESPONSE_AFTER_SCFGEXT_COMMAND_STATE;
+			 break;
+
+			 default:
+			 if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Restart_Modem();
+				t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+				result = ERROR_CONNECTING_TO_SERVER;
+			  }
+			 break;
+		}
+		break;
+
+		case GSM_TASK_WAIT_OK_RESPONSE_AFTER_SCFGEXT_COMMAND_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_RESPONSE_OK:
+			Send_ATCommand(Command_SGACT, GPRS_ATTACH_TIMEOUT,"");
+			t_connectingState = GSM_TASK_WAIT_SOCKET_ACTIVATION_STATE;
+			break;
+
+			default:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER))	{
+				Restart_Modem();
+				t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+				result = ERROR_CONNECTING_TO_SERVER;
+			}
+			break;
+		}
+		break;
+		/***************************************/
+		case GSM_TASK_WAIT_SOCKET_ACTIVATION_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_RESPONSE_OK:
+			Send_ATCommand(Command_SD, GPRS_ATTACH_TIMEOUT,"");
+			t_connectingState = GSM_TASK_WAIT_SERVER_CONNECTION_STATE;
+			break;
+
+			/* CME ERROR:555 Activation failed*/
+			case AT_CME_ERROR_555:
+			Send_ATCommand(Command_SGACT, GPRS_ATTACH_TIMEOUT,"");
+			break;
+
+			default:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER))	{
+				Restart_Modem();
+				t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+				result = ERROR_CONNECTING_TO_SERVER;
+			}
+			break;
+		}
+		break;
+
+		/***********************************/
+		case GSM_TASK_WAIT_SERVER_CONNECTION_STATE:
+		switch(t_atResultCode)
+		{
+			case AT_RESPONSE_OK:           /* connected to server*/
+			t_connectingState =GSM_TASK_ATTACH_TO_GPRS;
+			result = MODULE_CONNECTED_TO_SERVER;
+			break;
+
+			/* CME ERROR: 559 Time-out opening socket*/
+			case AT_CME_ERROR_559:
+			Send_ATCommand(Command_SD, GPRS_ATTACH_TIMEOUT,"");
+			break;
+
+			case AT_RESPONSE_GSM_REG_FAILED:
+			case AT_GPRS_DETACHED:
+			t_connectingState =GSM_TASK_ATTACH_TO_GPRS;
+			result = ERROR_CONNECTING_TO_SERVER;
+			break;
+
+			default:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Restart_Modem();
+				result = ERROR_CONNECTING_TO_SERVER;
+				t_connectingState = GSM_TASK_ATTACH_TO_GPRS;
+			}
+			break;
+		}
+		break;
+	}
+	return result;
+}
+/*****************************************************************************/
+/* Initialization state machine for gsm module.Returns true if               */
+/* initialization is succesfull.                                            */
+/*****************************************************************************/
+uint8_t ModuleInitialize(AT_RESPONSE_CODE t_atResultCode)
+{
+	//static GSM_TASK_INIT_STATE gsmTaskState_t = GSM_TASK_WAIT_HARD_RESET_DELAY_STATE;
+	static GSM_TASK_INIT_STATE gsmTaskInitState_t = GSM_TASK_MODULE_STARTUP_STATE;
+	uint8_t result = false;
+
+	switch(gsmTaskInitState_t)
+	{
+			case GSM_TASK_WAIT_HARD_RESET_DELAY_STATE:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Gsm_DeassertModuleResetLine();
+				gsmTaskInitState_t = GSM_TASK_MODULE_STARTUP_STATE;
+				PRINT_K("Module hard resetted");
+			}
+			break;
+
+	        case GSM_TASK_MODULE_STARTUP_STATE:
+			RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+			RingBuffer_Init(&gsm_txring, gsm_txbuff, 1, GSM_UART_SRB_SIZE);
+			memset(&gsm_params_t, 0, sizeof(gsm_params_t));
+			Set_Timer(&AT_RESPONSE_TIMER, GSM_MODULE_RESET_LINE_LOW_TIME * 5);
+			gsmTaskInitState_t = GSM_TASK_WAIT_TURN_ON_TIME_AFTER_RESET_STATE;
+			break;
+
+			case GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+			//	PRINT_K("Done\r\n");
+				Set_Timer(&AT_RESPONSE_TIMER, WAIT_DELAY_AFTER_RESET);
+				gsmTaskInitState_t = GSM_TASK_WAIT_TURN_ON_TIME_AFTER_RESET_STATE;
+				break;
+				/* if soft reset fails do a hard reset*/
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					Gsm_AssertModuleResetLine();
+					Set_Timer(&AT_RESPONSE_TIMER, GSM_MODULE_RESET_LINE_LOW_TIME);
+					gsmTaskInitState_t = GSM_TASK_WAIT_HARD_RESET_DELAY_STATE;
+				}
+				break;
+			}
+			break;
+			/*****************************/
+		    case GSM_TASK_WAIT_TURN_ON_TIME_AFTER_RESET_STATE:
+			if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+				Send_ATCommand(Command_ATE0, AT_RESPONSE_TIMEOUT,"Disabling echo");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_DISABLE_ECHO_COMMAND_STATE;
+			}
+			break;
+			/*********************************/
+			case GSM_TASK_WAIT_OK_AFTER_DISABLE_ECHO_COMMAND_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+				Send_ATCommand(Command_CBC, AT_RESPONSE_TIMEOUT, "Reading Battery Voltage...");
+				gsmTaskInitState_t = GSM_TASK_WAIT_BATTERY_LEVEL_MESSAGE_STATE;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+					Restart_Modem();
+				}
+				break;
+			}
+			break;
+			/**********************************/
+			case GSM_TASK_WAIT_BATTERY_LEVEL_MESSAGE_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+				gsmDataType_t = DATA_TYPE_IMEI_NUMBER;
+				Send_ATCommand(Command_CGSN, AT_RESPONSE_TIMEOUT, "Reading IMEI...");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_RESPONSE_AFTER_READ_IMEI_COMMAND_STATE;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+					Restart_Modem();
+				}
+				break;
+			}
+			break;
+			/**********************************/
+			case GSM_TASK_WAIT_OK_RESPONSE_AFTER_READ_IMEI_COMMAND_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+				Send_ATCommand(Command_CPIN, AT_RESPONSE_TIMEOUT,"Done.Reading PIN status");
+				gsmTaskInitState_t = GSM_TASK_WAIT_PIN_STATUS_RESPONSE_STATE;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+					Restart_Modem();
+				}
+				break;
+			}
+			break;
+			/****************************/
+			/* Check SIM Status         */
+			/****************************/
+			case GSM_TASK_WAIT_PIN_STATUS_RESPONSE_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_PIN_READY:
+				Set_Timer(&AT_RESPONSE_TIMER, AT_RESPONSE_TIMEOUT);
+				PRINT_K("Pin ready");
+				break;
+
+				case AT_RESPONSE_OK:
+				gsmDataType_t = DATA_TYPE_IMSI_NUMBER;
+				Send_ATCommand(Command_CIMI, AT_RESPONSE_TIMEOUT, "Reading IMSI...");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_RESPONSE_AFTER_READ_IMSI_COMMAND_STATE;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					Restart_Modem();
+				   	gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+				}
+				break;
+			}
+			break;
+			/****************************/
+			/* read IMSI command result */
+			/****************************/
+			case GSM_TASK_WAIT_OK_RESPONSE_AFTER_READ_IMSI_COMMAND_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+				Send_ATCommand(Command_CMER, SIM_INITIALIZE_TIMEOUT,"");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_RESPONSE_AFTER_CMER_COMMAND_STATE;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					Restart_Modem();
+					gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+				}
+				break;
+			}
+			break;
+
+			case GSM_TASK_WAIT_SIM_READY_DELAY_STATE:
+			if(mn_timer_expired(&COMMAND_REPEAT_DELAY_TIMER)){
+				Send_ATCommand(Command_CMER, AT_RESPONSE_TIMEOUT, "");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_RESPONSE_AFTER_CMER_COMMAND_STATE;
+			}
+			break;
+			/**********************************/
+			case GSM_TASK_WAIT_OK_RESPONSE_AFTER_CMER_COMMAND_STATE:
+			switch(t_atResultCode)
+			{
+				case AT_RESPONSE_OK:
+				Set_Timer(&AT_RESPONSE_TIMER, GSM_REGISTRATION_TIMEOUT);
+				PRINT_K("Waiting GSM registration...");
+				break;
+
+				case AT_CME_ERROR_14:   /*  SIM busy */
+				Set_Timer(&COMMAND_REPEAT_DELAY_TIMER, 100);
+				gsmTaskInitState_t = GSM_TASK_WAIT_SIM_READY_DELAY_STATE;
+				break;
+
+				case AT_RESPONSE_GSM_REG_OK:
+				PRINT_K("Registered");
+				gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+				result= true;
+				break;
+
+				default:
+				if(mn_timer_expired(&AT_RESPONSE_TIMER)){
+					Restart_Modem();
+					gsmTaskInitState_t = GSM_TASK_WAIT_OK_AFTER_RESET_COMMAND_STATE;
+				}
+				break;
+			}
+			break;
+	}
+	return result;
+}
+/*************************************************************/
+AT_RESPONSE_CODE ProcessATResponse(char *buffer)
+{
+	AT_RESPONSE_CODE respCode;
+	static uint8_t u8_charCount = 0;
+	static bool r_flag = false;
+	static uint8_t u8_enterCount = 0;
+    char u8_respChar[2];
+
+
+	if(Chip_UART_ReadRB(GSM_UART, &gsm_rxring, u8_respChar, 1))  {
+		switch(u8_respChar[0])
+		{
+			case CHAR_CR:    /* carriage return */
+			if((u8_charCount == 0) || (u8_enterCount == 1))
+				r_flag = true;
+			break;
+
+			case CHAR_LF:    /* line feed */
+			if(r_flag){
+				u8_enterCount++;
+				if(u8_enterCount == 2)  {
+					buffer[u8_charCount] = '\0';
+					u8_charCount = 0;
+					u8_enterCount = 0;
+					respCode = GetResponseCode(buffer);  /* return code for the at response */
+					PRINT_K(buffer);
+					return respCode;
+				}
+			}
+			else{
+				u8_charCount = 0;
+				u8_enterCount = 0;
+			}
+			r_flag = false;
+			break;
+
+			case '>':
+				PRINT_K("> received\r\n");
+			if(u8_enterCount == 1){
+				u8_enterCount = 0;
+				u8_charCount = 0;
+				return AT_SEND_DATA_PROMPT;
+			}
+			break;
+
+			default:
+			if(u8_enterCount == 1)
+				buffer[u8_charCount++] = u8_respChar[0];
+			else{
+				u8_charCount = 0;
+				u8_enterCount = 0;
+			}
+			r_flag = false;
+			break;
+		}
+	}
+	return AT_RESPONSE_NULL;
+}
+/*****************************************************************************/
+AT_RESPONSE_CODE GetResponseCode(char *buffer)
+{
+	RECV_DATA_T recvData;
+	uint8_t buf[16];
+	uint8_t u8_ringMsgResult;
+
+	if(strcmp(buffer, "OK") == 0)
+		return AT_RESPONSE_OK;
+
+	if(strncmp(buffer, "+CREG: " ,7) == 0)
+		return ProcessCREGMessage(buffer[7]);
+
+	if(strncmp(buffer, "+CME ERROR: 559", 15) == 0)
+		 return AT_CME_ERROR_559;
+
+	if(strncmp(buffer, "+CME ERROR: 14", 14) == 0)
+	 	return AT_CME_ERROR_14;
+
+	if(strncmp(buffer, "+CME ERROR: 555", 15) == 0)
+	 	return AT_CME_ERROR_555;
+
+	if(strncmp("+CPIN: ",buffer,7) == 0)
+		return ProcessCPinMessage(buffer);
+
+	if(strncmp("+CGREG: ",buffer, 8) == 0)
+	 	return ProcessCGREGMessage(buffer[8]);
+
+	if(strncmp("#SGACT:",buffer, 7) == 0)
+		return AT_CONTEXT_ACTIVATED;
+
+	if(strncmp("#CBC: ",buffer, 6) == 0){
+		ProcessBatteryLevelMessage(buffer);
+		return AT_BATTERY_LEVEL;
+	}
+	 if(strncmp("SRING: 1,", buffer, 9) == 0){
+		 if(ProcessSRINGMessage(buffer, &recvData)){
+			 u8_ringMsgResult = ProcessReceivedData(&recvData);
+			 switch( u8_ringMsgResult) {
+			 	 case 1:
+				 return AT_SEND_ASYNCHRONOUS_T_MESSAGE;
+
+			 	 case 2:
+			 	 return AT_SEND_STATUS_MESSAGE;
+
+			 	 default:
+			 	 break;
+			 }
+		 }
+	 }
+
+/*	 if(strncmp("#SI: ", buffer,5) == 0)
+	 {
+		 ProcessSIResponse(buffer);
+		 return AT_RESPONSE_SI;
+	 }*/
+
+	 switch(gsmDataType_t)
+	 {
+	 	 case DATA_TYPE_IMEI_NUMBER:
+	 	 memcpy(gsm_params_t.imei_no, buffer ,IMEI_LEN);
+	   	 gsm_params_t.imei_no[IMEI_LEN] = '\0';
+	     gsmDataType_t = DATA_TYPE_NO_DATA;
+	 	 break;
+
+	 	 case DATA_TYPE_IMSI_NUMBER:
+	 	 memcpy(gsm_params_t.imsi_no, buffer ,IMSI_LEN);
+	  	 gsm_params_t.imsi_no[IMSI_LEN] = '\0';
+	 	 gsmDataType_t = DATA_TYPE_NO_DATA;//DATA_TYPE_IMEI_NUMBER;
+	 	 break;
+	 }
+	 return AT_RESPONSE_NULL;
+}
+/****************************************************************************/
+/* Returns message length in messages sent by GSM module                    */
+/* buffer      [in]       at message buffer                                 */
+/* return      message length                                               */
+/****************************************************************************/
+bool ProcessSRINGMessage(uint8_t *buffer, RECV_DATA_T *recv_data)
+{
+	uint8_t temp[16];
+	char *pMsgStart;
+
+	strtok(buffer, ",");   /* dummy read */
+	pMsgStart = strtok(NULL, ",");
+	if(pMsgStart != NULL){
+		recv_data->length = atoi(pMsgStart);
+		if(pMsgStart != NULL) {
+			pMsgStart = strtok(NULL, ",");
+			memcpy(recv_data->data, pMsgStart, recv_data->length);
+			PRINT_K("data received");
+			PRINT_K(recv_data->data);
+			return TRUE;
+		}
+		else
+			return FALSE;
+	}
+	else
+		return FALSE;
+}
+uint8_t ProcessReceivedData(RECV_DATA_T *recv_data)
+{
+
+	char  pswdBuf[MAX_SET_COMMAND_PSWD_LENGTH + 1];
+	char *pPassword;
+	char *pData;
+	uint8_t result = 0;
+
+	if(strncmp(recv_data->data, TRIO_CONFIG_WORD, sizeof(TRIO_CONFIG_WORD)- 1) == 0){
+		PRINT_K("SET message received");
+		if(recv_data->data[sizeof(TRIO_CONFIG_WORD) - 1] == ':') {  /* password available */
+			pPassword = strtok(&(recv_data->data[sizeof(TRIO_CONFIG_WORD) - 1]), ";");
+			memcpy(pswdBuf, pPassword + 1, MAX_SET_COMMAND_PSWD_LENGTH);
+			pData = strlen(pswdBuf) + pPassword + 2;  /* points to data*/
+			PRINT_K(pswdBuf);
+			result = ParseConfigurationString(pData);
+		}
+		else{
+
+		}
+
+	}
+	return result;
+}
+/****************************************************************************/
+void ProcessBatteryLevelMessage(char *buffer)
+{
+	SetBatteryLevel(atoi(&buffer[8]));
+}
+/*****************************************************************************/
+AT_RESPONSE_CODE ProcessCGREGMessage(char u8_indValue)
+{
+	AT_RESPONSE_CODE msg = AT_RESPONSE_NULL;
+	switch(u8_indValue)
+	{
+		case '1':
+		msg = AT_GPRS_ATTACHED;
+		SetRoamingStatus(FALSE);
+		break;
+
+		case '5':
+		msg = AT_GPRS_ATTACHED;
+		SetRoamingStatus(TRUE);
+		break;
+
+		default:
+		msg = AT_GPRS_DETACHED;
+		SetRoamingStatus(FALSE);
+		break;
+	}
+	return msg;
+}
+/*****************************************************************************/
+AT_RESPONSE_CODE ProcessCREGMessage(char u8_indValue)
+{
+	AT_RESPONSE_CODE msg = AT_RESPONSE_NULL;
+	switch(u8_indValue)
+	{
+		case '1':
+		case '5':
+		msg =  AT_RESPONSE_GSM_REG_OK;
+		break;
+
+		default:
+		msg = AT_RESPONSE_GSM_REG_FAILED;
+		break;
+	}
+	return msg;
+}
+/*****************************************************************************/
+AT_RESPONSE_CODE ProcessCIEVMessage(char *const buffer)
+{
+	AT_RESPONSE_CODE msg = AT_RESPONSE_NULL;
+	switch(buffer[17])
+	{
+		case '1':
+		msg = AT_RESPONSE_GSM_REG_OK;
+
+		break;
+
+		case '0':
+		msg = AT_RESPONSE_GSM_REG_FAILED;
+		break;
+	}
+	return msg;
+}
+/*******************************************************************************/
+AT_RESPONSE_CODE ProcessCPinMessage(char *buffer)
+{
+    if(strncmp((buffer + 9),(char *)"READY", 5) == 0)
+      	 return AT_RESPONSE_PIN_READY;
+    else
+         return AT_RESPONSE_PIN_ERROR;
+}
+
+/********************************************************************************/
+void Set_GsmResetPinFunction(uint8_t pin_number)
+{
+	/* Set PIO0.10 as output.This pin controls the reset pin */
+	/* of Telit GSM module*/
+
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+	/* Enable GPIO function for I2C pins */
+	Chip_IOCON_PinSetI2CMode(LPC_IOCON, IOCON_PIO10, PIN_I2CMODE_GPIO);
+	/* Disable the clock to the Switch Matrix to save power */
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
+
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, pin_number);
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, pin_number, true);
+}
+/*******************************************************************************/
+void Gsm_AssertModuleResetLine(void)
+{
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 10, true);
+}
+/********************************************************************************/
+void Gsm_DeassertModuleResetLine(void)
+{
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 10, false);
+}
+/********************************************************************************/
+void ProcessSIResponse(char *buffer)
+{
+	uint16_t u16_numNonAckedBytes = 0;
+	//pBuffer = strtok(buffer,"\r\n");
+}
+/******************************************************************/
+void Get_GsmInfo(GSM_INFO_T *const gsm_info_buffer)
+{
+	*gsm_info_buffer = gsm_params_t;
+	/*gsm_info_buffer->csq = gsm_params_t.csq;
+	strcpy(gsm_info_buffer->imei_no, gsm_params_t.imei_no);
+	strcpy(gsm_info_buffer->imsi_no, gsm_params_t.imsi_no);*/
+}
+/*******************************************************************/
+void DeassertGsmResetPin(void)
+{
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, 10, false);
+}
+/********************************************************************/
+void Restart_Modem()
+{
+	RingBuffer_Init(&gsm_rxring, gsm_rxbuff, 1, GSM_UART_RRB_SIZE);
+	RingBuffer_Init(&gsm_txring, gsm_txbuff, 1, GSM_UART_SRB_SIZE);
+	Send_ATCommand(Command_RESET, AT_RESPONSE_TIMEOUT,"Restarting modem\r\n");
+}
+/*********************************************************************/
+void Send_ATCommand(const char *command, TIMER_TICK_T timeout, char *traceMessage)
+{
+	PRINT_K(traceMessage);
+	PRINT_K(command);
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, command, strlen(command));
+	Set_Timer(&AT_RESPONSE_TIMER, timeout);
+}
+/*********************************************************************/
+void StartSendingMessage(int i_msgLen)
+{
+	char buffer[8];
+
+	itoa(i_msgLen, buffer,10);
+
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, Command_SSENDEXT, sizeof(Command_SSENDEXT) -1);
+	PRINT_K(Command_SSENDEXT);
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, buffer, strlen(buffer));
+	PRINT_K(buffer);
+	Chip_UART_SendRB(GSM_UART, &gsm_txring, "\r",1);
+	Set_Timer(&AT_RESPONSE_TIMER, AT_RESPONSE_TIMEOUT*10);
+}
+/**********************************************************************/
+bool GetServerConnectionStatus()
+{
+	return gsm_params_t.b_connectedToServer;
+}
+

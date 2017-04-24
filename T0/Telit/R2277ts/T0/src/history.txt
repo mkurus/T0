@@ -1,0 +1,54 @@
+﻿**************************R2258**********************
+*** history.txt dosyası proje ağacına eklendi.
+*** SMS aktivasyon fonksiyonu kaldırıldı.
+*** Mesaj periyodu güncellemeden sonra  resetleme iptal edildi.
+*** Roaming ayarı güncellemeden sonra resertleme iptal edildi.
+*** Hız limiti ayarından sonra resetleme iptal edildi.
+*** Km güncellemeden sonra resetleme iptal edildi.
+*** Cihaz ID'si güncellemeden sonra resetleme iptal edildi.
+*** Şifre değiştirmeden sonra resetleme iptal edildi.
+*** Harici flash silindikten sonra reset konuldu.
+*** update_message_period_setting() fonksiyonunda ayarlar güncellendikten sonra 
+    ReloadPeriodicDataSendTimer() fonksiyonu çağrılarak ayarların değiştiği anda yeni
+    ayarlanan periyotla mesaj gönderilmesi sağlandı.
+*** 14 no'lu komut(SMS gönderme) fonksiyonu eklendi.
+**************************R2260**********************
+*** Kontak kontrolü interrupt tabanlı yapıdan polling
+    tabanlı yapıya döndürüldü.
+*** Roaming te SMS bekleme state i eklendi.
+*** Gelen SMS mesajlarına SMS cevabı döndürme özelliği eklendi.
+*** Aracın kontağı kapalı iken 10 km'den hızlı hareket etmesi 
+    halinde mesaj periyodu kontak açımış gibi değerlendirildi.
+ **************************R2261**********************   
+ *** Ignition on ve off durumları için eventler ayrıldı.
+ *** Besleme gerilimi dedeksiyonu için debounce timer ı Set
+ 	 edilmiyordu. Düzeltildi.
+  **************************R2262********************** 
+ *** Ayar yapılırken şifre girilmediyse şifre doğru gibi işlem yapıyordu. 
+     Düzeltildi.	
+ *** Get_SocketStatus() fonksiyonunda revizyobn yapıldı.
+   **************************R2263********************** 
+ *** IMEI okunurken +CPIN: READY mesajı alınıyordu.	
+     Get_IMEI fonksiyonu revize eidldi.
+ *** ST mesajına RECONNECT eklendi.
+   **************************R2264**********************
+ *** Test amacıyla P mesajlarının sonuna eklenen ;I= I1 stringleri kaldırıldı.
+ *** RECONNECT mesajından önce ; karakteri eklendi.
+ *** IMEI sonuna '70' eklendi.
+ *** ST mesajındaki derleme saati bilgisi kaldırıldı.
+  **************************R2265t**********************
+ *** Telit GL865V3 GSM modül ve SL869v2S GPS modül için hazırlanmış versiyon.
+ *** GSM modül reset pini P0.10 olarak değiştirildi.
+ *** GPS baud rate 9600 olarak değiştirildi.
+ *** GSM modül kodu "t" olarak değiştirildi.
+ *** Trio_Init_GPS_UART() fonksiyonundaki UART_CFG_RXPOL flagı  iptal edildi.
+ *** Watchdog aktif edildi.
+   **************************R2265Q**********************
+ *** Quectel M66 modül için R2265T eşdeğer versiyonu.
+ *** GSM modül reset pini P0.21 olarak değiştirildi.
+ *** GPS baud rate 115200 olarak değiştirildi.
+ *** GSM modül kodu "Q" olarak değiştirildi.
+ *** Trio_Init_GPS_UART() fonksiyonundaki UART_CFG_RXPOL flagı  aktif edildi.
+ *** Watchdog aktif edildi.
+   **************************R2266Q**********************
+ *** GPS baud rate SIM28ML-H için 115200 olarak ayarlandı.

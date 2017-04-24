@@ -1,0 +1,81 @@
+
+#ifndef SETTINGS_H_
+#define SETTINGS_H_
+/* macro definitions for parameters residing in flash */
+uint8_t ParseConfigurationString(char *const buffer);
+#define SIZEOF(s,m)          ((size_t)sizeof(((s *)0)->m))
+#define READ_PARAMETER(M,D)  read_flash_parameter(offsetof(FLASH_SETTINGS_T,M),SIZEOF(FLASH_SETTINGS_T,M), D)
+#define WRITE_PARAMETER(M,D) write_flash_parameter(offsetof(FLASH_SETTINGS_T,M),SIZEOF(FLASH_SETTINGS_T,M), D)
+
+#define FLASH_SETTINGS_TABLE_BASE_ADDR    0x00000000
+
+#define MAX_APN_NAME_LEN           48
+#define MAX_APN_USERNAME_LEN       48
+#define MAX_APN_PASSWORD_LEN       48
+
+
+/* do not add padding bytes to struct members */
+typedef struct __attribute__ ((__packed__))
+{
+	char flash_apn[MAX_APN_NAME_LEN];
+	char flash_apnusername[MAX_APN_USERNAME_LEN];
+	char flash_apnpassword[MAX_APN_PASSWORD_LEN];
+	char server_ip[128];
+	char server_port[6];
+	char device_id[16];
+	char password[12];
+	bool roaming_activation;
+	bool sms_activation;
+	bool engine_blockage;
+	bool uncontrolled_blockage;
+	uint16_t msg_period_roaming_ignited;
+	uint16_t msg_period_roaming_not_ignited;
+	uint16_t msg_period_not_roaming_ignited;
+	uint16_t msg_period_not_roaming_not_ignited;
+	uint16_t speed_limit;
+	uint16_t speed_duration;
+	uint64_t flash_mileage;
+}FLASH_SETTINGS_T;
+
+typedef enum {
+	SERVER_AND_PORT_SETTING = 1,
+	RESERVED1,
+	RESERVED2,
+	MESSAGE_PERIOD_SETTING,
+	ROAMING_ACTIVATION,
+	SMS_ACTIVATION,
+	SPEED_LIMIT_SETTING,
+	ENGINE_BLOCKAGE_SETTING,
+	RESERVED3,
+	RESERVED4,
+	KM_COUNTER,
+	DEVICE_RESET,
+	RESERVED5,
+	SMS_SETTING,
+	DEVICE_ID_SETTING,
+	RESERVED6,
+	RESERVED7,
+	RESERVED8,
+	DEVICE_STATUS_REQUEST,
+	DIGITAL_INPUT_ALARM_SETTING,
+	RESERVED9,
+	UNCONTROLLED_ENGINE_BLOCKAGE,
+	LOCATION_REQUEST,
+	RESERVED10,
+	APN_SETTING,
+	ENGINE_OPERATION_SETTINGS,
+	RESERVED11,
+	GARMIN_FMI_ACTIVATION,
+	TEXT_MESSAGE_TO_GARMIN,
+	RESERVED12,
+	RESERVED13,
+	CHANGE_PASSWORD
+}COMMAND_TYPE_T;
+
+typedef struct SETTING_INFO
+{
+	COMMAND_TYPE_T command;
+	uint8_t (*update_callback)(char *const buffer);
+}SETTING_INFO_T;
+
+#endif /* SETTINGS_H_ */

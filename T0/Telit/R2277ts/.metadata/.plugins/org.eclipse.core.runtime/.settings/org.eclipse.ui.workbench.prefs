@@ -1,0 +1,11 @@
+//org.eclipse.ui.commands/state/com.nxp.current.setProbeType/org.eclipse.ui.commands.radioState=nopower
+//org.eclipse.ui.commands/state/org.eclipse.ui.navigator.resources.nested.changeProjectPresentation/org.eclipse.ui.commands.radioState=false
+ColorsAndFontsPreferencePage.expandedCategories=Torg.eclipse.ui.workbenchMisc\tTorg.eclipse.cdt.ui.presentation\tTorg.eclipse.cdt.ui.CEditor.presentation\tTorg.eclipse.ui.presentation.default
+ColorsAndFontsPreferencePage.selectedElement=Forg.eclipse.ui.workbench.texteditor.blockSelectionModeFont
+RUN_IN_BACKGROUND=true
+UIActivities.org.eclipse.cdt.debug.dsfgdbActivity=true
+eclipse.preferences.version=1
+org.eclipse.cdt.ui.buildconsole.ConsoleFont=1|Consolas|14.25|0|WINDOWS|1|-19|0|0|0|400|0|0|0|-94|3|2|1|49|Consolas;
+org.eclipse.cdt.ui.editors.textfont=1|Consolas|14.25|0|WINDOWS|1|-19|0|0|0|400|0|0|0|-94|3|2|1|49|Consolas;
+org.eclipse.jface.textfont=1|Consolas|15.75|0|WINDOWS|1|-21|0|0|0|400|0|0|0|-94|3|2|1|49|Consolas;
+org.eclipse.ui.workbench.texteditor.blockSelectionModeFont=1|Courier New|14.25|0|WINDOWS|1|-19|0|0|0|400|0|0|0|-94|3|2|1|49|Courier New;

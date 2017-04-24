@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;T0/src/bootloader.c&apos; to &apos;isrjumpvectors.c&apos;" description="Rename resource &apos;bootloader.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/bootloader.c" name="isrjumpvectors.c" stamp="1450250239703" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;T0/src/bootloader.h&apos; to &apos;isrjmpvectors.h&apos;" description="Rename resource &apos;bootloader.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/bootloader.h" name="isrjmpvectors.h" stamp="1450250258643" updateReferences="true"/>
+</session>

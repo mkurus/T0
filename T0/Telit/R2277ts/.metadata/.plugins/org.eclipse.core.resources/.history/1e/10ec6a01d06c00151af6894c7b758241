@@ -1,0 +1,53 @@
+
+static const char Command_RESET[]      = "AT+CFUN=1,1\r";               /* soft reset */
+static const char Command_ATE0[]  	   = "ATE0;+CMEE=1;+CREG=1;+CGREG=1\r";      /* disable echo*/
+static const char Command_CMER[] 	   = "AT+CMER=0,0,0,2,0\r";         /* enable unsolicited message codes*/
+static const char Command_CMEE[]  	   = "AT+CMEE=1\r";           /* enable +CME ERROR:<err> reports, with <err> in numeric format*/
+static const char Command_CGSN[]       = "AT+CGSN\r";             /* Read IMEI*/
+static const char Command_CBC[]        = "AT#CBC\r";               /* Read battery voltage*/
+static const char Command_CIMI[] 	   = "AT+CIMI\r";             /* Read IMSI*/
+static const char Command_CMGF[]       = "AT+CMGF=1\r";           /* Text mode message format */
+//static const char Command_RESET[]        = "AT#ENHRST=1,0\r";       /* reboot module*/
+static const char Command_CPIN[]       = "AT+CPIN?\r";            /* get pin status*/
+static const char Command_CNMI[]       = "AT+CNMI=2,1,0,0,0\r";   /* enable unsolicited SMS indicator*/
+static const char Command_CGDCONT[]    = "AT+CGDCONT=1,\"IP\",\"trioapn\"\r";   /* define PDP context */
+static const char Command_SGACT[]      = "AT#SGACT=1,1,\"vodafone\",\"vodafone\"\r";
+static const char Command_SCFG[]       = "AT#SCFG=1,1,300,240,100,50\r";
+
+static const char Command_SCFGEXT[]    = "AT#SCFGEXT=1,2,0,0,0,0\r";         /* socket configuration */
+//static const char *const Command_SD        = "AT#SD=1,0,6081,\"178.63.30.81\",0,0,1";  /* open tcp connection*/
+static const char Command_SSENDEXT[]   = "AT#SSENDEXT=1,";                 /* send data */
+//static const char Command_SSENDEXT[]   = "AT#SSEND=1\r";                 /* send data */
+static const char Command_SI[]    	   = "AT#SI=1\r";
+static const char Command_CGREG[]      = "AT+CGREG=1\r";
+//static const char Command_SD[]         = "AT#SD=1,0,10510,\"modules.telit.com\",0,0,1";  /* connect to telit echo server*/
+//static const char Command_SD[]         = "AT#SD=1,0,6081,\"178.63.30.81\",0,0,1\r";  /* connect to trio server */
+static const char   Command_SD[]         = "AT#SD=1,0,1555,\"213.14.184.87\",0,0,1\r";  /* connect to trio server */
+#define CHAR_CR   '\r'
+#define CHAR_LF   '\n'
+
+
+typedef enum
+{
+	AT_RESPONSE_NULL,
+	AT_RESPONSE_OK,
+	AT_RESPONSE_GSM_REG_OK,
+	AT_RESPONSE_GSM_REG_FAILED,
+	AT_RESPONSE_PIN_READY,
+	AT_RESPONSE_PIN_ERROR,
+	AT_SEND_DATA_PROMPT,
+	AT_DATA_RECEIVED,
+	CONFIGURATION_REQUEST,
+	AT_SERVER_DISCONNECTED,
+	AT_RESPONSE_SI,
+	AT_IMSI_CODE,
+    AT_CIEV_MESSAGE,
+	AT_GPRS_ATTACHED,
+	AT_GPRS_DETACHED,
+	AT_RESPONSE_ERROR,
+	AT_CONTEXT_ACTIVATED,
+	AT_BATTERY_LEVEL,
+	AT_CME_ERROR_14,
+	AT_CME_ERROR_555,
+	AT_CME_ERROR_559
+}AT_RESPONSE_CODE;
